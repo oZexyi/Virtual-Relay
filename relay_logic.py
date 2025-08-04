@@ -39,7 +39,7 @@ class Location:
     def display_relay(self):
         for trailer in self.trailers:
             # If trailer has an overload, output overload info
-            overload_text = f"- Overload [{trailer.overload_from[0]} {trailer.overload_from[1]} stacks]" if trailer overload from else ""
+            overload_text = f"- Overload [{trailer.overload_from[0]} {trailer.overload_from[1]} stacks]" if trailer.overload_from else ""
             # Print trailer details (LD number, stack count)
             print(f"{self.name}:\nLD {trailer.ld_number} - Trailer #{trailer.number}: {trailer.stacks} stacks {overload_text}")
             # Print empty input fields for trailer number and seal number
