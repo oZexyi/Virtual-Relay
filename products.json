@@ -1,0 +1,364 @@
+[
+  {
+    "name": "BIDBUS 12pk 4\" HAMS",
+    "product_number": 13726170,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 5
+  },
+  {
+    "name": "BIDBUS SAND 20oz",
+    "product_number": 13710140,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 6
+  },
+  {
+    "name": "BUNNY 32oz (2LB)",
+    "product_number": 10810480,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 6
+  },
+  {
+    "name": "COOKOUT 12pk\" HAMS",
+    "product_number": 97626170,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 8
+  },
+  {
+    "name": "FLOWERS TEX TOAST 1\"",
+    "product_number": 10040070,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 6
+  },
+  {
+    "name": "FLOWERS 12pk 4.5\" HAMS",
+    "product_number": 10025390,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 8
+  },
+  {
+    "name": "FLOWERS 12pk 6\" TOP SL HOTS",
+    "product_number": 10027422,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 8
+  },
+  {
+    "name": "FLOWERS 3/4\" TEX TOAST",
+    "product_number": 10040090
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 6
+  },
+  {
+    "name": "FLOWERS 30pk 4\" PL HAMS",
+    "product_number": 10026700,
+    "stack_height": 30,
+    "tray_type": "bulk",
+    "units_per_tray": 30
+  },
+  {
+    "name": "GRISSOM SAND 20oz",
+    "product_number": 52510140,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8
+  },
+  {
+    "name": "IDEAL SAND 20oz",
+    "product_number": 24710140,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8
+  },
+  {
+    "name": "IGA SAND 20oz",
+    "product_number": 24810140,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8
+  },
+  {
+    "name": "INGLES 6pk 6\" TOP SL HOTS",
+    "product_number": 37827260,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 6
+  },
+  {
+    "name": "INGLES 8pk 4.5\" PL HAMS",
+    "product_number": 37825360,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 4
+  },
+  {
+    "name": "INGLES 8pk 4.5\" SD HAMS",
+    "product_number": 37825380,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 4
+  },
+  {
+    "name": "INGLES BBQ UNSL",
+    "product_number": 37815680,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 6
+  },
+  {
+    "name": "INGLES TEX TOAST",
+    "product_number": 37840070,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8
+},
+  {
+    "name": "LOWES SAND 20oz",
+    "product_number": 28110140,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8
+  },
+  {
+    "name": "MERITA SAND 32oz (2LB)",
+    "product_number": 60810480,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8
+  },
+  {
+    "name": "MKPANTRY HNY WHE RTOP",
+    "product_number": 59515080,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8
+  },
+  {
+    "name": "MKPANTRY 8pk HAMS",
+    "product_number": 59539290,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 12
+  },
+  {
+    "name": "MKPANTRY RTOP",
+    "product_number": 59510160,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8
+  },
+  {
+    "name": "MORNINGFRESH SAND 20oz",
+    "product_number": 27610140,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8
+  },
+  {
+    "name": "NATOWN 100% WHOLE WHE",
+    "product_number": 10241180,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8
+  },
+  {
+    "name": "NATOWN 2pk HAWAIIAN",
+    "product_number": 10282010,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 4
+  },
+  {
+    "name": "NATOWN ANCIENT GRAIN",
+    "product_number": 10230952,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8
+  },
+  {
+    "name": "NATOWN HAWAIIAN",
+    "product_number": 10218590,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8
+  },
+  {
+    "name": "NATOWN HAWAIIAN MINI",
+    "product_number": 10241390,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 12
+  },
+  {
+    "name": "NATOWN HOMESTYLE MINI",
+    "product_number": 10231102,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 12
+  },
+  {
+    "name": "NATOWN PC 12pk BRIOCHE ROLLS",
+    "product_number": 10236742,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 6
+  },
+  {
+    "name": "NATOWN PC 12pk BRIOCHE HAMS",
+    "product_number": 10238630,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 6
+},
+  {
+    "name": "NATOWN PC 8pk BRIOCHE HAMS",
+    "product_number": 10238620,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 12
+  },
+  {
+    "name": "NATOWN PC 8pk BRIOCHE HOTS",
+    "product_number": 10238610,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 12
+  },
+  {
+    "name": "NATOWN PC BRIOCHE 22oz",
+    "product_number": 10207160,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8
+  },
+  {
+    "name": "NATOWN PC MULTI GRAIN 22oz",
+    "product_number": 10259720,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8
+  },
+  {
+    "name": "NATOWN PC WHITE 22oz",
+    "product_number": 10259710,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8
+  },
+  {
+    "name": "NATOWN SOURDOUGH MINI",
+    "product_number": 10241400,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 12
+  },
+  {
+    "name": "NOB4S WHEAT SAND 26.5oz",
+    "product_number": 95933420,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 12
+  },
+  {
+    "name": "OVERFRESH SAND 20oz",
+    "product_number": 28610140,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8
+  },
+  {
+    "name": "PIGGLYWIGGL SAND 20oz",
+    "product_number": 28810140,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8
+  },
+  {
+    "name":
+    "product_number":
+    "stack_height":
+    "tray_type":
+    "units_per_tray":
+  },
+  {
+    "name":
+    "product_number":
+    "stack_height":
+    "tray_type":
+    "units_per_tray":
+  },
+  {
+    "name":
+    "product_number":
+    "stack_height":
+    "tray_type":
+    "units_per_tray":
+  },
+  {
+    "name":
+    "product_number":
+    "stack_height":
+    "tray_type":
+    "units_per_tray":
+  },
+  {
+    "name":
+    "product_number":
+    "stack_height":
+    "tray_type":
+    "units_per_tray":
+},
+  {
+    "name":
+    "product_number":
+    "stack_height":
+    "tray_type":
+    "units_per_tray":
+  },
+  {
+    "name":
+    "product_number":
+    "stack_height":
+    "tray_type":
+    "units_per_tray":
+  },
+  {
+    "name":
+    "product_number":
+    "stack_height":
+    "tray_type":
+    "units_per_tray":
+  },
+  {
+    "name":
+    "product_number":
+    "stack_height":
+    "tray_type":
+    "units_per_tray":
+  },
+  {
+    "name":
+    "product_number":
+    "stack_height":
+    "tray_type":
+    "units_per_tray":
+  },
+  {
+    "name":
+    "product_number":
+    "stack_height":
+    "tray_type":
+    "units_per_tray":
+  },
+  {
+    "name":
+    "product_number":
+    "stack_height":
+    "tray_type":
+    "units_per_tray":
