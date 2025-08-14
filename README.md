@@ -9,13 +9,13 @@ At Flowers, trailers are loaded with stacks of bread and bulk products based on 
 - Tracking bread trays, bulk trays, cross-dock trays, and inbounds
 
 ## Features
-- **Day and Date Selection**
+- **Day and Date Selection:**
 Input the operational day (1, 2, 4, 5, 6) and the relay date for reporting.
 
-- **Location-Based Tray Input**
+- **Location-Based Tray Input:**
 Enter the tray count for 24 total locations, including warehouses and sister plants.
 
-- **Automated Calculations**
+- **Automated Calculations:**
   - 17 bread trays = 1 stack
   - 30 bulk trays = 1 stack
   - 1 cake pallet = 4 stacks (distribution only)
