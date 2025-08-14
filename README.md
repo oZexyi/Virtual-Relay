@@ -31,7 +31,7 @@ The system calculates the number of trailers required per location.
 - Uses 'math.ceil()' to handle rounding of stacks values
 
 ## Future Plans
-- Written in React.js JavaScript and Spring Boot Java
+- Written in React.js JavaScript, and Spring Boot Java
 - Add a **live dashboard** tab to track:
   - Active trailers
   - Stack status (e.g., tagged but not scanned)
