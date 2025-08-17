@@ -2,9 +2,9 @@
 ## Overview
 The Virtual Relay System is a software solution designed to digitally simulate the paper-based relay in shipping operations at Flowers Foods. This project is part of my hands-on development for a Software Engineering degree and aims to streamline logistical decision-making using real-time inputs.
 ## Purpose
-At Flowers, trailers are loaded with stacks of bread and bulk products based on orders received from sister plants. Currently, this process is manually managed with a paper relay. This project replaces that with a dynamic, live system capable of: 
+At Flowers, trailers are loaded with stacks of bread and bulk products based on orders received from routes. Currently, this process is manually managed with a paper relay. This project replaces that with a dynamic, live system capable of: 
 - Calculating stack counts per location
-- Estimating required trailers based on real-time tray inputs
+- Estimating required trailers based on real-time orders
 - Factoring in cake pallets (for Day 1 and Day 4)
 - Tracking bread trays, bulk trays, cross-dock trays, and inbounds
 
@@ -12,8 +12,8 @@ At Flowers, trailers are loaded with stacks of bread and bulk products based on 
 - **Day and Date Selection:**
 Input the operational day (1, 2, 4, 5, 6) and the relay date for reporting.
 
-- **Location-Based Tray Input:**
-Enter the tray count for 24 total locations, including warehouses and sister plants.
+- **Order System:**
+Order units for each route. The system will automatically generate a relay system to fill the orders.
 
 - **Automated Calculations:**
   - 17 bread trays = 1 stack
@@ -31,12 +31,13 @@ The system calculates the number of trailers required per location.
 - Uses 'math.ceil()' to handle rounding of stacks values
 
 ## Future Plans
-- Written in React.js JavaScript, and Spring Boot Java
+- Written in React.js JavaScript and Spring Boot Java
 - Add a **live dashboard** tab to track:
   - Active trailers
   - Stack status (e.g., tagged but not scanned)
 - Integrate a financials tab for deeper insights into "buying" and "selling."
-- Long-term: explore interfacing with systems like PCData or S4 (SAP replacement)
+- Long-term: explore interfacing with systems like PCData or S4 (SAP replacement).
+- Integrate a tray debt tab to track tray allocation between sister plants.
 
 
 ## Author
