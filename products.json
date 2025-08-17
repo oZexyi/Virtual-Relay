@@ -562,7 +562,7 @@
   {
     "name": "CLOVAL 8pk HOTS",
     "product_number": 45927300,
-    "stack_height": 20.
+    "stack_height": 20,
     "tray_type": "bread",
     "units_per_tray": 12,
     "origin_plant": 191
@@ -788,7 +788,7 @@
     "product_number": 10088960,
     "stack_height": 20,
     "tray_type": "bread",
-    "units_per_tray": 6.
+    "units_per_tray": 6,
     "origin_plant": 108
   },
   {
