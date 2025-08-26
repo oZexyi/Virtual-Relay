@@ -197,7 +197,7 @@
     "stack_height": 17,
     "tray_type": "bread",
     "units_per_tray": 4,
-    "origin_plant": null
+    "origin_plant": 184
   },
   {
     "name": "NATOWN ANCIENT GRAIN",
@@ -213,7 +213,7 @@
     "stack_height": 17,
     "tray_type": "bread",
     "units_per_tray": 8,
-    "origin_plant": null
+    "origin_plant": 184
   },
   {
     "name": "NATOWN HAWAIIAN MINI",
@@ -221,7 +221,7 @@
     "stack_height": 17,
     "tray_type": "bread",
     "units_per_tray": 12,
-    "origin_plant": null
+    "origin_plant": 184
   },
   {
     "name": "NATOWN HOMESTYLE MINI",
@@ -229,7 +229,7 @@
     "stack_height": 17,
     "tray_type": "bread",
     "units_per_tray": 12,
-    "origin_plant": null
+    "origin_plant": 184
   },
   {
     "name": "NATOWN PC 12pk BRIOCHE ROLLS",
@@ -237,7 +237,7 @@
     "stack_height": 20,
     "tray_type": "bread",
     "units_per_tray": 6,
-    "origin_plant": null
+    "origin_plant": 161
   },
   {
     "name": "NATOWN PC 12pk BRIOCHE HAMS",
@@ -245,7 +245,7 @@
     "stack_height": 20,
     "tray_type": "bread",
     "units_per_tray": 6,
-    "origin_plant": null
+    "origin_plant": 161
 },
   {
     "name": "NATOWN PC 8pk BRIOCHE HAMS",
@@ -253,7 +253,7 @@
     "stack_height": 20,
     "tray_type": "bread",
     "units_per_tray": 12,
-    "origin_plant": null
+    "origin_plant": 161
   },
   {
     "name": "NATOWN PC 8pk BRIOCHE HOTS",
@@ -261,7 +261,7 @@
     "stack_height": 20,
     "tray_type": "bread",
     "units_per_tray": 12,
-    "origin_plant": null
+    "origin_plant": 161
   },
   {
     "name": "NATOWN PC BRIOCHE 22oz",
@@ -293,7 +293,7 @@
     "stack_height": 17,
     "tray_type": "bread",
     "units_per_tray": 12,
-    "origin_plant": null
+    "origin_plant": 184
   },
   {
     "name": "NOB4S WHEAT SAND 26.5oz",
@@ -340,7 +340,7 @@
     "product_number": 68737702,
     "stack_height": 56,
     "tray_type": "box",
-    "units_per_tray": null,
+    "units_per_tray": 36,
     "origin_plant": 307
   },
   {
@@ -389,7 +389,7 @@
     "stack_height": 20,
     "tray_type": "bread",
     "units_per_tray": 12,
-    "origin_plant": null
+    "origin_plant": 161
   },
   {
     "name": "WONDER 24pk ROLLS",
@@ -397,7 +397,7 @@
     "stack_height": 20,
     "tray_type": "bread",
     "units_per_tray": 6,
-    "origin_plant": null
+    "origin_plant": 161
   },
   {
     "name": "WONDER 3/4\" TEX TOAST",
@@ -413,7 +413,7 @@
     "stack_height": 17,
     "tray_type": "bread",
     "units_per_tray": 12,
-    "origin_plant": null
+    "origin_plant": 184
     },
   {
     "name": "WONDER BBQ",
@@ -798,6 +798,643 @@
     "tray_type": "bread",
     "units_per_tray": 6,
     "origin_plant": 181
-
-
-
+  },
+  {
+    "name": "FLOWERS 12pk 4.5\" KAISER HAMS",
+    "product_number": 10025450,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 6,
+    "origin_plant": 108
+  },
+  {
+    "name": "FLOWERS 12pk 6\" HOTS",
+    "product_number": 10027320,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 120
+  },
+  {
+    "name": "FLOWERS 20pk 5\" PL HAMS",
+    "product_number": 10027140,
+    "stack_height": 30,
+    "tray_type": "bulk",
+    "units_per_tray": 20,
+    "origin_plant": 191
+  },
+  {
+    "name": "FLOWERS 20pk 5\" SD HAMS",
+    "product_number": 10027160,
+    "stack_height": 30,
+    "tray_type": "bulk",
+    "units_per_tray": 20,
+    "origin_plant": 191
+  },
+  {
+    "name": "FLOWERS 30pk 4\" KAIS PL HAMS",
+    "product_number": 10026710,
+    "stack_height": 30,
+    "tray_type": "bulk",
+    "units_per_tray": 30,
+    "origin_plant": 120
+  },
+  {
+    "name": "FLOWERS 6pk 10\" HOTS",
+    "product_number": 10027620,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 6,
+    "origin_plant": 108
+  },
+  {
+    "name": "FLOWERS 6pk 7\" SUB HNGD",
+    "product_number": 10020980,
+    "stack_height": 18,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 108
+  },
+  {
+    "name": "FLOWERS 6pk 8\" SUB HNGD",
+    "product_number": 10028470,
+    "stack_height": 18,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 108
+  },
+  {
+    "name": "FLOWERS 6pk 8\" SUB UNSL",
+    "product_number": 10020990,
+    "stack_height": 18,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 108
+  },
+  {
+    "name": "FLOWERS 8pk 4.5\" PL HAMS",
+    "product_number": 10025360,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 4,
+    "origin_plant": 181
+  },
+  {
+    "name": "FLOWERS 8pk 4.5\" SD HAMS",
+    "product_number": 10025380,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 4,
+    "origin_plant": 181
+  },
+  {
+    "name": "FOODCITY NAT/C WHOLE WHE",
+    "product_number": 20515260,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 191
+  },
+  {
+    "name": "RAISING CANE BBQ",
+    "product_number": 99841800,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 6,
+    "origin_plant": 108
+  },
+  {
+    "name": "GRISSOM 8pk HAMS",
+    "product_number": 52525760,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 12,
+    "origin_plant": 191
+  },
+  {
+    "name": "GRISSOM 8pk HOTS",
+    "product_number": 52527300,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 12,
+    "origin_plant": 191
+  },
+  {
+    "name": "GRISSOM RTOP",
+    "product_number": 52510160,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 191
+  },
+  {
+    "name": "GVAL 100% WHL WHE & HNY",
+    "product_number": 73715303,
+    "stack_height": 16,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 108
+  },
+  {
+    "name": "GVAL 100% WHL WHE",
+    "product_number": 73715260,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 191
+  },
+  {
+    "name": "GVAL TEX TOAST",
+    "product_number": 73740090,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 181
+  },
+  {
+    "name": "GVAL 8pk HAMS",
+    "product_number": 73725760,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 12,
+    "origin_plant": 191
+  },
+  {
+    "name": "GVAL 8pk HOTS",
+    "product_number": 73727300,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 12,
+    "origin_plant": 191
+  },
+  {
+    "name": "GVAL HNY WHE",
+    "product_number": 73715080,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 191
+  },
+  {
+    "name": "GVAL MLTGRN SPEC BRD OVL",
+    "product_number": 73720092,
+    "stack_height": 16,
+    "tray_type": "bread",
+    "units_per_tray": 6,
+    "origin_plant": 108
+  },
+  {
+    "name": "GVAL NY RYE SPEC BRD OVL",
+    "product_number": 73792332,
+    "stack_height": 16,
+    "tray_type": "bread",
+    "units_per_tray": 6,
+    "origin_plant": 108
+  },
+  {
+    "name": "GVAL RTOP",
+    "product_number": 73710160,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 191
+  },
+  {
+    "name": "GVAL SAND",
+    "product_number": 73710142,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 181
+  },
+  {
+    "name": "GVAL SODO SPEC BRD OVL",
+    "product_number": 73792342,
+    "stack_height": 16,
+    "tray_type": "bread",
+    "units_per_tray": 6,
+    "origin_plant": 108
+  },
+  {
+    "name": "GVAL WHE SAND",
+    "product_number": 73710202,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 181
+  },
+  {
+    "name": "HARRIS TEETER 100% WHL WHE",
+    "product_number": 98415260,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 191
+  },
+  {
+    "name": "HARRIS TEETER 8pk HAMS",
+    "product_number": 98425760,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 12,
+    "origin_plant": 191
+  },
+  {
+    "name": "HARRIS TEETER 8pk HOTS",
+    "product_number": 98427300,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 12,
+    "origin_plant": 191
+  },
+  {
+    "name": "HARRIS TEETER HNY WHE",
+    "product_number": 98415080,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 191
+  },
+  {
+    "name": "HARRIS TEETER RTOP",
+    "product_number": 98410160,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 191
+  },
+  {
+    "name": "HOMEPRIDE 16pk HAMS",
+    "product_number": 54024730,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 5,
+    "origin_plant": 191
+  },
+  {
+    "name": "HOMEPRIDE 16pk HOTS",
+    "product_number": 54024780,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 5,
+    "origin_plant": 191
+  },
+  {
+    "name": "IDEAL 8pk HAMS",
+    "product_number": 24725760,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 12,
+    "origin_plant": 191
+  },
+  {
+    "name": "IDEAL 8pk HOTS",
+    "product_number": 24727300,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 12,
+    "origin_plant": 191
+  },
+  {
+    "name": "IDEAL SOFT WHE",
+    "product_number": 24715140,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 191
+  },
+  {
+    "name": "IGA 8pk HAMS",
+    "product_number": 24825760,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 12,
+    "origin_plant": 191
+  },
+  {
+    "name": "IGA 8pk HOTS",
+    "product_number": 24827300,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 12,
+    "origin_plant": 191
+  },
+  {
+    "name": "IGA HNY WHE",
+    "product_number": 24815080,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 191
+  },
+  {
+    "name": "IGA RTOP",
+    "product_number": 24810160,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 191
+  },
+  {
+    "name": "IGA WHE SPLT TOP",
+    "product_number": 24816490,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 191
+  },
+  {
+    "name": "INGLES 6pk 6.5\" SUB ROLL",
+    "product_number": 37820960,
+    "stack_height": 18,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 108
+  },
+  {
+    "name": "KROGER SOFT WHE RTOP",
+    "product_number": 26115140,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 191
+  },
+  {
+    "name": "LOVENFRESH 100% WHL WHE",
+    "product_number": 65115260,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 191
+  },
+  {
+    "name": "LOWES 100% WHL WHE",
+    "product_number": 28115260,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 191
+  },
+  {
+    "name": "LOWES 8pk HAMS",
+    "product_number": 28125760,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 12,
+    "origin_plant": 191
+  },
+  {
+    "name": "LOWES 8pk HOTS",
+    "product_number": 28127300,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 12,
+    "origin_plant": 191
+  },
+  {
+    "name": "LOWES OLDFASH",
+    "product_number": 28110220,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 191
+  },
+  {
+    "name": "MERTIA OLDFASH",
+    "product_number": 60810220,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 120
+  },
+  {
+    "name": "MKPANTRY 100% WHL WHE",
+    "product_number": 59515260,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 191
+  },
+  {
+    "name": "MKPANTRY 8pk HOTS",
+    "product_number": 59539340,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 12,
+    "origin_plant": 120
+  },
+  {
+    "name": "MORNINGFRESH 8pk HAMS",
+    "product_number": 27625760,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 12,
+    "origin_plant": 191
+  },
+  {
+    "name": "MORINGFRESH GRAIN BREAD",
+    "product_number": 27616350,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 191
+  },
+  {
+    "name": "MORNINGFRESH RTOP",
+    "product_number": 27610160,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 191
+  },
+  {
+    "name": "NATOWN 100% WHL WHE",
+    "product_number": 10215260.
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 191
+  },
+  {
+    "name": "NATOWN 16pk BTR HAMS",
+    "product_number": 10219290,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 5,
+    "origin_plant": 191
+  },
+  {
+    "name": "NATOWN 16pk BTR HOTS",
+    "product_number": 10219121,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 5,
+    "origin_plant": 191
+  },
+  {
+    "name": "NATOWN 2PK 100% WHL WHE",
+    "product_number": 10215390,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 4,
+    "origin_plant": 191
+  },
+  {
+    "name": "NATOWN 2PK BTRBREAD",
+    "product_number": 10215210,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 4,
+    "origin_plant": 191
+  },
+  {
+    "name": "NATOWN 2PK HNY WHE",
+    "product_number": 10215090,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 4,
+    "origin_plant": 191
+  },
+  {
+    "name": "NATOWN 2PK KETO",
+    "product_number": +10224331,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 4,
+    "origin_plant": 191
+  },
+  {
+    "name": "NATOWN 8pk BTR HAMS",
+    "product_number": 10224980,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 12,
+    "origin_plant": 191
+  },
+  {
+    "name": "NATOWN 8pk BTR HOTS",
+    "product_number": 10219000,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 12,
+    "origin_plant": 191
+  },
+  {
+    "name": "NATOWN BTRBREAD",
+    "product_number": 10215200,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 191
+  },
+  {
+    "name": "NATOWN HNY WHE",
+    "product_number": 10215080,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 191
+  },
+  {
+    "name": "NATOWN KETO LOAF (PP)",
+    "product_number": 10281781,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 10,
+    "origin_plant": 191
+  },
+  {
+    "name": "NATOWN KETO LOAF",
+    "product_number": 10281780.
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 10,
+    "origin_plant": 191
+  },
+  {
+    "name": "NATOWN PC 2PK MULTI GRN",
+    "product_number": 10236570,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 4,
+    "origin_plant": 191
+  },
+  {
+    "name": "NOB4S 16ct 4\" HAMS",
+    "product_number": 95927480,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 6,
+    "origin_plant": 108
+  },
+  {
+    "name": "NOB4S 16ct 6\" HOTS",
+    "product_number": 95933400,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 6.
+    "origin_plant": 108
+  },
+  {
+    "name": "NOB4S 24ct ROLLS",
+    "product_number": 95933450,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 6,
+    "origin_plant": 108
+  },
+  {
+    "name": "NOB4S WHI SAND",
+    "product_number": 95933410,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 6,
+    "origin_plant": 108
+  },
+  {
+    "name": "OVENFRESH 8pk HAMS",
+    "product_number": 28625760,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 12,
+    "origin_plant": 191
+  },
+  {
+    "name": "OVENFRESH 8pk HOTS",
+    "product_number": 26827300,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 12,
+    "origin_plant": 191
+  },
+  {
+    "name": "OVENFRESH RTOP",
+    "product_number": 28610160,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 191
+  },
+  {
+    "name": "OVENFRESH SOFT WHE",
+    "product_number": 28615142,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 191
+  },
+  {
+    "name": "PIGGLYWIGGL 100% WHL WHE",
+    "product_number": 28615260,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 191
+  },
+  {
+    "name": "PIGGLYWIGGL 8pk HAMS",
+    "product_number": 28825760,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 12,
+    "origin_plant": 191
