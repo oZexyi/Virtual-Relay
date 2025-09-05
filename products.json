@@ -1249,7 +1249,7 @@
   },
   {
     "name": "NATOWN 100% WHL WHE",
-    "product_number": 10215260.
+    "product_number": 10215260,
     "stack_height": 17,
     "tray_type": "bread",
     "units_per_tray": 8,
@@ -1297,7 +1297,7 @@
   },
   {
     "name": "NATOWN 2PK KETO",
-    "product_number": +10224331,
+    "product_number": 10224331,
     "stack_height": 17,
     "tray_type": "bread",
     "units_per_tray": 4,
@@ -1345,7 +1345,7 @@
   },
   {
     "name": "NATOWN KETO LOAF",
-    "product_number": 10281780.
+    "product_number": 10281780,
     "stack_height": 17,
     "tray_type": "bread",
     "units_per_tray": 10,
@@ -1372,7 +1372,7 @@
     "product_number": 95933400,
     "stack_height": 20,
     "tray_type": "bread",
-    "units_per_tray": 6.
+    "units_per_tray": 6,
     "origin_plant": 108
   },
   {
@@ -1438,3 +1438,588 @@
     "tray_type": "bread",
     "units_per_tray": 12,
     "origin_plant": 191
+  },
+  {
+    "name": "PIGGLYWIGLL 8pk HOTS",
+    "product_number": 28827300,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 12,
+    "origin_plant": 191
+  },
+  {
+    "name": "PIGGLYWIGGL RTOP",
+    "product_number": 28810160,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 191
+  },
+  {
+    "name": "PUBLIX 8pk HAMS",
+    "product_number": 34825760,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 12,
+    "origin_plant": 191
+  },
+  {
+    "name": "PUBLIX 8pk HOTS",
+    "product_number": 34827300,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 12,
+    "origin_plant": 191
+  },
+  {
+    "name": "PUBLIX OLDFASH",
+    "product_number": 34810220,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 191
+  },
+  {
+    "name": "PUBLIX RTOP",
+    "product_number": 34810160,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 191
+  },
+  {
+    "name": "PUBLIX WHE RTOP",
+    "product_number": 34816350,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 191
+  },
+  {
+    "name": "PUBPREM 100% WHE OV",
+    "product_number": 34920052,
+    "stack_height": 16,
+    "tray_type": "bread",
+    "units_per_tray": 6,
+    "origin_plant": 108
+  },
+  {
+    "name": "PUBPREM HNY WHE",
+    "product_number": 34915080,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 191
+  },
+  {
+    "name": "PUBPREM SPLT TOP WHI",
+    "product_number": 34915200,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 191
+  },
+  {
+    "name": "SMARTWAY 8pk HAMS",
+    "product_number": 96825760,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 12,
+    "origin_plant": 120
+  },
+  {
+    "name": "SMARTWAY 8pk HOTS",
+    "product_number": 96827300,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 12,
+    "origin_plant": 120
+  },
+  {
+    "name": "SMARTWAYY WHE RTOP",
+    "product_number": 96815140,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 191
+  },
+  {
+    "name": "SUNBEAM 2PK SAND 48oz",
+    "product_number": 10110680,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 4,
+    "origin_plant": 181
+  },
+  {
+    "name": "SUNBEAM SAND 24oz GNT",
+    "product_number": 10110380,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 6,
+    "origin_plant": 181
+  },
+  {
+    "name": "TK PINK SNOWB",
+    "product_number": 68752903,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 307
+  },
+  {
+    "name": "TK LEMON JR",
+    "product_number": 68786980,
+    "stack_height": 90,
+    "tray_type": "box",
+    "units_per_tray": 8,
+    "origin_plant": 307
+  },
+  {
+    "name": "TK CHOC JR",
+    "product_number": 68733974,
+    "stack_height": 90,
+    "tray_type": "box",
+    "units_per_tray": 8,
+    "origin_plant": 160
+  },
+  {
+    "name": "TK COCO JR",
+    "product_number": 68767584,
+    "stack_height": 90,
+    "tray_type": "box",
+    "units_per_tray": 8,
+    "origin_plant": 160
+  },
+  {
+    "name": "TK CHOC DON",
+    "product_number": 68748362,
+    "stack_height": 30,
+    "tray_type": "bulk",
+    "units_per_tray": 8,
+    "origin_plant": 307
+  },
+  {
+    "name": "TK CINN SWTRLL",
+    "product_number": 68755463,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 307
+  },
+  {
+    "name": "TK CONFETTI KRIMPETS",
+    "product_number": 68724800,
+    "stack_height": 90,
+    "tray_type": "box",
+    "units_per_tray": 8,
+    "origin_plant": 307
+  },
+  {
+    "name": "TK CRUMBLE DON",
+    "product_number": 68748312,
+    "stack_height": 30,
+    "tray_type": "bulk",
+    "units_per_tray": 8,
+    "origin_plant": 307
+  },
+  {
+    "name": "TK DES SHELL",
+    "product_number": 68757004,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 307
+  },
+  {
+    "name": "TK PEC SPIN TRAY",
+    "product_number": 68754303,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 307
+  },
+  {
+    "name": "TK PEC SPIN BOX",
+    "product_number": 68754304,
+    "stack_height": 90,
+    "tray_type": "box",
+    "units_per_tray": 8,
+    "origin_plant": 307
+  },
+  {
+    "name": "TK SWRL CHOC CUP",
+    "product_number": 68789530,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 307
+  },
+  {
+    "name": "TK VAR MN DON",
+    "product_number": 6873770,
+    "stack_height": 90,
+    "tray_type": "box",
+    "units_per_tray": 8,
+    "origin_plant": 307
+  },
+  {
+    "name": "TK 6MP BTRCRM CUPCAK",
+    "product_number": 68767374,
+    "stack_height": 90,
+    "tray_type": "box",
+    "units_per_tray": 8,
+    "origin_plant": 160
+  },
+  {
+    "name": "TK 6MP HNYBUN",
+    "product_number": 68747540,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 307
+  },
+  {
+    "name": "TK 6MP PBTR KK",
+    "product_number": 68767364,
+    "stack_height": 90,
+    "tray_type": "box",
+    "units_per_tray": 8,
+    "origin_plant": 160
+  },
+  {
+    "name": "TK BG CRML APL DON",
+    "product_number": 68791680,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 307
+  },
+  {
+    "name": "TK CHOC BG MNDN",
+    "product_number": 68750502,
+    "stack_height": 90,
+    "tray_type": "box",
+    "units_per_tray": 8,
+    "origin_plant": 307
+  },
+  {
+    "name": "TK CINN BG TRAY",
+    "product_number": 68785053,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 307
+  },
+  {
+    "name": "TK CINN BG BOX",
+    "product_number": 68785052,
+    "stack_height": 90,
+    "tray_type": "box",
+    "units_per_tray": 8,
+    "origin_plant": 307
+  },
+  {
+    "name": "TK GLZ APL PIE",
+    "product_number": 68709723,
+    "stack_height": 90,
+    "tray_type": "box",
+    "units_per_tray": 8,
+    "origin_plant": 307
+  },
+  {
+    "name": "TK GLZ CHOCPIE",
+    "product_number": 68783713,
+    "stack_height": 90,
+    "tray_type": "box",
+    "units_per_tray": 8,
+    "origin_plant": 307
+  },
+  {
+    "name": "TK GLZ CHRYPIE",
+    "product_number": 68709693,
+    "stack_height": 90,
+    "tray_type": "box",
+    "units_per_tray": 8,
+    "origin_plant": 307
+  },
+  {
+    "name": "TK GLZ HBN BOX",
+    "product_number": 68769373,
+    "stack_height": 90,
+    "tray_type": "box",
+    "units_per_tray": 8,
+    "origin_plant": 307
+  },
+  {
+    "name": "TK GLZ HBN TRAY",
+    "product_number": 68769370,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 307
+  },
+  {
+    "name": "TK GLZ LEMPIE",
+    "product_number": 68709673,
+    "stack_height": 90,
+    "tray_type": "box",
+    "units_per_tray": 8,
+    "origin_plant": 307
+  },
+  {
+    "name": "TK ICD HNYBN BOX",
+    "product_number": 68769394,
+    "stack_height": 90,
+    "tray_type": "box",
+    "units_per_tray": 8,
+    "origin_plant": 307
+  },
+  {
+    "name": "TK ICD HNYBN TRAY",
+    "product_number": 68769392,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 307
+  },
+  {
+    "name": "TK SUG BG MNDN",
+    "product_number": 68750262,
+    "stack_height": 90,
+    "tray_type": "box",
+    "units_per_tray": 8,
+    "origin_plant": 307
+  },
+  {
+    "name": "TK VARHNBN",
+    "product_number": 68788740,
+    "stack_height": 90,
+    "tray_type": "box",
+    "units_per_tray": 8,
+    "origin_plant": 307
+  },
+  {
+    "name": "TK 16FP PECAN SWIRL",
+    "product_number": 68738962,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 307
+  },
+  {
+    "name": "TK 2PK CHOC DIPPN STX",
+    "product_number": 68723400,
+    "stack_height": 90,
+    "tray_type": "box",
+    "units_per_tray": 8,
+    "origin_plant": 307
+  },
+  {
+    "name": "TK 2PK LEMBLUD DIPPN STX",
+    "product_number": 68723591,
+    "stack_height": 90,
+    "tray_type": "box",
+    "units_per_tray": 8,
+    "origin_plant": 307
+  },
+  {
+    "name": "TK PECAN SPIN BOX",
+    "product_number": 68728620,
+    "stack_height": 90,
+    "tray_type": "box",
+    "units_per_tray": 8,
+    "origin_plant": 307
+  },
+  {
+    "name": "TK 6MP CHOC DIPPN STX",
+    "product_number": 68723310,
+    "stack_height": 90,
+    "tray_type": "box",
+    "units_per_tray": 8,
+    "origin_plant": 307
+  },
+  {
+    "name": "TK 6MP CRM KOFF KAK",
+    "product_number": 68767644,
+    "stack_height": 90,
+    "tray_type": "box",
+    "units_per_tray": 8,
+    "origin_plant": 160
+  },
+  {
+    "name": "TK 6MP ICD HNYBN BOX",
+    "product_number": 68734290,
+    "stack_height": 90,
+    "tray_type": "box",
+    "units_per_tray": 8,
+    "origin_plant": 307
+  },
+  {
+    "name": "TK 6MP ICD HNYBUN BOX",
+    "product_number": 68734292,
+    "stack_height": 90,
+    "tray_type": "box",
+    "units_per_tray": 8,
+    "origin_plant": 307
+  },
+  {
+    "name": "TK 6MP LEMBL DIPN STX",
+    "product_number": 68723320,
+    "stack_height": 90,
+    "tray_type": "box",
+    "units_per_tray": 8,
+    "origin_plant": 307
+  },
+  {
+    "name": "TK 6SG MNDN",
+    "product_number": 68748272,
+    "stack_height": 30,
+    "tray_type": "bulk",
+    "units_per_tray": 8,
+    "origin_plant": 307
+  },
+  {
+    "name": "TK BAG KEY LIME DON",
+    "product_number": 68704381,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 307
+  },
+  {
+    "name": "TK BAN PUD GLZ PIE",
+    "product_number": 68714000,
+    "stack_height": 90,
+    "tray_type": "box",
+    "units_per_tray": 8,
+    "origin_plant": 307
+  },
+  {
+    "name": "TK LEMON BAG DON",
+    "product_number": 68738830,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 307
+  },
+  {
+    "name": "TK MP BB MN MUFF",
+    "product_number": 68736601,
+    "stack_height": 90,
+    "tray_type": "box",
+    "units_per_tray": 8,
+    "origin_plant": 160
+  },
+  {
+    "name": "TK MP CHOCHP MN MUFF",
+    "product_number": 68736612,
+    "stack_height": 90,
+    "tray_type": "box",
+    "units_per_tray": 8,
+    "origin_plant": 160
+  },
+  {
+    "name": "TK MP CNFTTI MN MUFF",
+    "product_number": 68736622,
+    "stack_height": 90,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 160
+  },
+  {
+    "name": "WHATABURGER 20pk 5\" HAMS",
+    "product_number": 59627170,
+    "stack_height": 30,
+    "tray_type": "bulk",
+    "units_per_tray": 20,
+    "origin_plant": 108
+  },
+  {
+    "name": "WHATABURGER 30pk 4\" PL HAMS",
+    "product_number": 59626700,
+    "stack_height": 30,
+    "tray_type": "bulk",
+    "units_per_tray": 30,
+    "origin_plant": 108
+  },
+  {
+    "name": "WHATABURGER TEX TOAST",
+    "product_number": 59640690,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 108
+  },
+  {
+    "name": "WHITEWHEAT 2PK RTOP",
+    "product_number": 13410040,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 4,
+    "origin_plant": 120
+  },
+  {
+    "name": "WONDER 12pk HOTS",
+    "product_number": 61127332,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 6,
+    "origin_plant": 181
+  },
+  {
+    "name": "WONDER 2PK RTOP",
+    "product_number": 61115960,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 4,
+    "origin_plant": 191
+  },
+  {
+    "name": "WONDER 6pk PHILLY",
+    "product_number": 10393650,
+    "stack_height": 18,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 108
+  },
+  {
+    "name": "WONDER 8pk HAMS",
+    "product_number": 61125760,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 12,
+    "origin_plant": 191
+  },
+  {
+    "name": "WONDER 8pk HOTS",
+    "product_number": 61127300,
+    "stack_height": 20,
+    "tray_type": "bread",
+    "units_per_tray": 12,
+    "origin_plant": 191
+  },
+  {
+    "name": "WONDER CLASSIC WHITE LOAF",
+    "product_number": 61108850,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 181
+  },
+  {
+    "name": "WONDER RTOP",
+    "product_number": 61110160,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 191
+  },
+  {
+    "name": "WONDER SAND GNT",
+    "product_number": 61110360,
+    "stack_height": 17,
+    "tray_type": "bread",
+    "units_per_tray": 8,
+    "origin_plant": 181
+  }
