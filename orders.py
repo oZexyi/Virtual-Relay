@@ -129,7 +129,7 @@ class OrderSystem:
             for product in selected_products:
                 # Generate random units that are multiples of units_per_tray
                 min_trays = 1
-                max_trays = 25  # Increased demo range for more comprehensive testing
+                max_trays = 50  # Increased demo range to ensure multiple trailers for some locations
                 num_trays = random.randint(min_trays, max_trays)
                 units_ordered = num_trays * product.units_per_tray
                 

@@ -49,23 +49,48 @@ def simulate_orders(max_products: int):
 	return f"{msg}\nCreated {len(orders)} demo orders with up to {max_products} products per route.", dates
 
 
-def upload_orders(orders_json_file):
-	if orders_json_file is None:
-		return "Please upload an orders_*.json file exported from the system.", []
-	ensure_order_system()
-	ensure_relay_system()
-	path = os.path.join(os.getcwd(), "uploaded_orders.json")
-	with open(path, "wb") as f:
-		f.write(orders_json_file.read())
-	ok = order_system.load_orders_from_file(path)
-	dates = sorted(set(o.order_date.split(" ")[0] for o in order_system.get_all_orders()))
-	return ("Loaded orders successfully." if ok else "Failed to load orders."), dates
-
-
 def get_dates():
 	ensure_order_system()
 	dates = sorted(set(o.order_date.split(" ")[0] for o in order_system.get_all_orders()))
 	return dates
+
+
+def get_order_summary(selected_date: str):
+	"""Get detailed summary of orders for a specific date"""
+	if not selected_date:
+		return "Select a date to view orders"
+	
+	ensure_order_system()
+	orders_for_date = [o for o in order_system.get_all_orders() if o.order_date.startswith(selected_date)]
+	
+	if not orders_for_date:
+		return f"No orders found for {selected_date}"
+	
+	# Group orders by location
+	locations = {}
+	for order in orders_for_date:
+		location = order.route_name
+		if location not in locations:
+			locations[location] = []
+		locations[location].append(order)
+	
+	summary_lines = [
+		f"=== ORDERS FOR {selected_date} ===",
+		f"Total Orders: {len(orders_for_date)}",
+		f"Total Locations: {len(locations)}",
+		""
+	]
+	
+	for location, orders in sorted(locations.items()):
+		total_trays = sum(order.total_trays for order in orders)
+		total_stacks = sum(order.total_stacks for order in orders)
+		summary_lines.append(f"📍 {location}")
+		summary_lines.append(f"   Orders: {len(orders)}")
+		summary_lines.append(f"   Total Trays: {total_trays}")
+		summary_lines.append(f"   Total Stacks: {total_stacks}")
+		summary_lines.append("")
+	
+	return "\n".join(summary_lines)
 
 
 def create_relay(selected_date: str, day_number: str | None):
@@ -94,14 +119,21 @@ def create_relay(selected_date: str, day_number: str | None):
 		total_trays = getattr(loc, 'total_trays', sum(item.trays_needed for o in loc.orders for item in o.items))
 		summary_lines.append(f"\n{loc.name}: Orders={len(loc.orders)}  Trays={total_trays}  Stacks={loc.total_stacks}  Trailers={len(loc.trailers)}")
 
-	# Build detailed order info
-	details_lines = ["== ORDER DETAILS =="]
+	# Build detailed trailer and order info
+	details_lines = ["== TRAILER ASSIGNMENTS =="]
 	for loc in relay_system.locations:
-		details_lines.append(f"\n-- {loc.name} --")
+		details_lines.append(f"\n📍 {loc.name}")
+		details_lines.append(f"   Total Stacks: {loc.total_stacks} | Total Trailers: {len(loc.trailers)}")
+		
+		# Show each trailer
+		for trailer in loc.trailers:
+			details_lines.append(f"   🚛 Trailer #{trailer.number}: {trailer.stacks} stacks")
+		
+		details_lines.append(f"\n   📋 Orders for {loc.name}:")
 		for o in loc.orders:
-			details_lines.append(f"Order {o.order_id}  Route {o.route_id}  Trays={o.total_trays}  Stacks={o.total_stacks}")
+			details_lines.append(f"      Order {o.order_id} (Route {o.route_id}): {o.total_trays} trays, {o.total_stacks} stacks")
 			for it in o.items:
-				details_lines.append(f"  - {it.product_name}: units={it.units_ordered}, trays={it.trays_needed}, stacks={it.stacks_needed}")
+				details_lines.append(f"        - {it.product_name}: {it.units_ordered} units → {it.trays_needed} trays → {it.stacks_needed} stacks")
 
 	return "\n".join(summary_lines), "\n".join(details_lines)
 
@@ -122,18 +154,27 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 		refresh_btn.click(lambda: (initialize_systems(), []), outputs=[catalog_msg, date_dropdown_1])
 
 	with gr.Tab("Orders"):
-		gr.Markdown("Simulate demo orders for all routes and locations, or upload an exported orders_*.json file.")
-		max_products = gr.Slider(1, 100, value=50, step=1, label="Max products per order (demo)")
-		simulate_btn = gr.Button("Simulate Orders for All Routes")
-		sim_msg = gr.Textbox(label="Status", interactive=False)
-		date_dropdown_2 = gr.Dropdown(choices=[], label="Available Dates", interactive=True)
+		gr.Markdown("## Order Management System")
+		gr.Markdown("This page demonstrates the order management capabilities of the Virtual Relay System.")
+		
+		with gr.Row():
+			with gr.Column(scale=1):
+				gr.Markdown("### Demo Orders")
+				gr.Markdown("Generate sample orders to test the system:")
+				max_products = gr.Slider(1, 235, value=235, step=1, label="Max products per order")
+				simulate_btn = gr.Button("Generate Demo Orders", variant="primary")
+				sim_msg = gr.Textbox(label="Demo Status", interactive=False)
+			
+			with gr.Column(scale=1):
+				gr.Markdown("### Order Overview")
+				gr.Markdown("View and manage existing orders:")
+				date_dropdown_2 = gr.Dropdown(choices=[], label="Select Date", interactive=True)
+				order_summary = gr.Textbox(label="Order Summary", lines=8, interactive=False)
+				refresh_orders_btn = gr.Button("Refresh Orders")
+		
 		simulate_btn.click(simulate_orders, inputs=[max_products], outputs=[sim_msg, date_dropdown_2])
-
-		orders_upload = gr.File(label="Upload orders_*.json", file_types=[".json"])
-		upload_btn = gr.Button("Load Orders File")
-		upload_msg = gr.Textbox(label="Status", interactive=False)
-		date_dropdown_3 = gr.Dropdown(choices=[], label="Available Dates", interactive=True)
-		upload_btn.click(upload_orders, inputs=[orders_upload], outputs=[upload_msg, date_dropdown_3])
+		date_dropdown_2.change(lambda date: get_order_summary(date) if date else "Select a date to view orders", inputs=[date_dropdown_2], outputs=[order_summary])
+		refresh_orders_btn.click(get_dates, outputs=[date_dropdown_2])
 
 	with gr.Tab("Relay"):
 		gr.Markdown("Select a date, optionally enter a day number, and generate the relay.")
