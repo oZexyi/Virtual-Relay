@@ -13,9 +13,13 @@ relay_system: RelaySystem | None = None
 # Initialize systems on startup
 def initialize_systems():
 	global order_system, relay_system
-	order_system = OrderSystem()
-	relay_system = RelaySystem()
-	return f"System ready: {len(order_system.products)} products, {len(order_system.routes)} routes."
+	try:
+		order_system = OrderSystem()
+		relay_system = RelaySystem()
+		relay_system.order_system = order_system
+		return f"System ready: {len(order_system.products)} products, {len(order_system.routes)} routes."
+	except Exception as e:
+		return f"Error initializing system: {str(e)}"
 
 def ensure_order_system(products_path: str | None = None, routes_path: str | None = None) -> str:
 	global order_system
@@ -41,11 +45,16 @@ def ensure_relay_system() -> None:
 def upload_catalog(products_file, routes_file):
 	"""Accept products.json and routes.json uploads and initialize the catalog."""
 	if not products_file or not routes_file:
-		# Use default files if no uploads provided
-		msg = ensure_order_system()
-		ensure_relay_system()
-		dates = sorted(set(o.order_date.split(" ")[0] for o in order_system.get_all_orders())) if order_system else []
-		return f"{msg} (Using default files)", dates
+		# Use default files if no uploads provided - reinitialize with default paths
+		global order_system, relay_system
+		try:
+			order_system = OrderSystem()  # This will use default products.json and routes.json
+			relay_system = RelaySystem()
+			relay_system.order_system = order_system
+			dates = sorted(set(o.order_date.split(" ")[0] for o in order_system.get_all_orders())) if order_system else []
+			return f"System ready: {len(order_system.products)} products, {len(order_system.routes)} routes (Using default files)", dates
+		except Exception as e:
+			return f"Error loading default files: {str(e)}", []
 
 	# Save to working directory to be file-backed for OrderSystem
 	products_path = os.path.join(os.getcwd(), "products.json")
