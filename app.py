@@ -36,25 +36,74 @@ def cleanup_old_order_files():
 		# Find all order files
 		order_files = glob.glob("all_orders_*.json") + glob.glob("confirmed_orders_*.json") + glob.glob("orders_*.json")
 		
-		# Keep only the most recent consolidated file, delete the rest
-		if order_files:
-			# Sort by modification time (newest first)
-			order_files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
-			
-			# Keep the newest consolidated file, delete others
-			kept_files = []
-			for file in order_files:
-				if file.startswith("all_orders_") and not kept_files:
-					kept_files.append(file)
-					print(f"Keeping most recent consolidated file: {file}")
-				else:
-					os.remove(file)
-					print(f"Deleted old file: {file}")
-			
-			print(f"Cleanup complete: {len(order_files)} files processed, {len(kept_files)} kept")
+		if not order_files:
+			return
+		
+		print(f"Found {len(order_files)} order files to clean up")
+		
+		# Group files by base name (without timestamp variations)
+		file_groups = {}
+		for file in order_files:
+			# Extract base name (e.g., "all_orders_09-10-2025_Day4" from "all_orders_09-10-2025_Day4.json")
+			base_name = file.replace('.json', '')
+			if base_name not in file_groups:
+				file_groups[base_name] = []
+			file_groups[base_name].append(file)
+		
+		# For each group, keep only the newest file
+		kept_files = []
+		deleted_files = []
+		
+		for base_name, files in file_groups.items():
+			if len(files) > 1:
+				# Sort by modification time (newest first)
+				files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+				
+				# Keep the newest, delete the rest
+				kept_files.append(files[0])
+				for old_file in files[1:]:
+					try:
+						os.remove(old_file)
+						deleted_files.append(old_file)
+						print(f"Deleted duplicate file: {old_file}")
+					except Exception as e:
+						print(f"Error deleting {old_file}: {e}")
+			else:
+				# Only one file in group, keep it
+				kept_files.append(files[0])
+		
+		print(f"Cleanup complete: {len(deleted_files)} duplicate files deleted, {len(kept_files)} unique files kept")
 		
 	except Exception as e:
 		print(f"Error during cleanup: {e}")
+
+
+def manual_cleanup_order_files():
+	"""Manual cleanup function that can be called from the UI"""
+	try:
+		import glob
+		import os
+		
+		# Find all order files
+		order_files = glob.glob("all_orders_*.json") + glob.glob("confirmed_orders_*.json") + glob.glob("orders_*.json")
+		
+		if not order_files:
+			return "No order files found to clean up"
+		
+		# Delete all order files
+		deleted_count = 0
+		for file in order_files:
+			try:
+				os.remove(file)
+				deleted_count += 1
+				print(f"Deleted: {file}")
+			except Exception as e:
+				print(f"Error deleting {file}: {e}")
+		
+		return f"Manual cleanup complete: {deleted_count} files deleted"
+		
+	except Exception as e:
+		return f"Error during manual cleanup: {e}"
 
 def ensure_order_system() -> str:
 	global order_system
@@ -955,6 +1004,8 @@ def save_orders_with_confirmation(orders, date_str, day_num):
 		day_num: Day number
 	"""
 	try:
+		# Clean up any existing files for this date/day combination before saving
+		cleanup_old_order_files()
 		
 		# Convert date to filename format (MM-DD-YYYY)
 		filename_date = date_str.replace("/", "-")
@@ -1364,9 +1415,16 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 		**Built with Python, Gradio, and WorldTimeAPI** | **Professional Manufacturing Logistics Demo**
 		""")
 		
-		# Refresh button to reload system status
-		refresh_btn = gr.Button("Refresh System Status")
+		# System management buttons
+		with gr.Row():
+			refresh_btn = gr.Button("Refresh System Status")
+			cleanup_btn = gr.Button("Clean Up Duplicate Files", variant="secondary")
+		
+		# Cleanup status display
+		cleanup_status = gr.Textbox(label="Cleanup Status", interactive=False, visible=False)
+		
 		refresh_btn.click(lambda: (initialize_systems(), get_initial_dates()), outputs=[system_status, date_dropdown_1])
+		cleanup_btn.click(manual_cleanup_order_files, outputs=[cleanup_status])
 
 	with gr.Tab("Orders"):
 		gr.Markdown("## Order Management")
