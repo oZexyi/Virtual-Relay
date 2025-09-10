@@ -72,7 +72,7 @@ def create_orders_for_date_and_day(order_date: str, order_day: str, max_products
 			return "Invalid day selected. Please select Day 1, 2, 4, 5, or 6.", []
 		
 		if max_products is None or max_products <= 0:
-			max_products = len(order_system.products) if order_system else 100
+			max_products = 235  # Use all 235 products for comprehensive order generation
 		
 		msg = ensure_order_system()
 		ensure_relay_system()
@@ -641,64 +641,6 @@ def get_north_carolina_date_for_orders():
 		return fallback_date
 
 
-def save_orders_to_json(orders, date_str, day_num):
-	"""
-	Save orders to JSON file for persistence and relay generation
-	
-	🎓 Data Persistence: This function demonstrates:
-	- File I/O operations for data persistence
-	- JSON serialization for data storage
-	- Separation of concerns between order creation and relay generation
-	
-	Args:
-		orders: List of Order objects
-		date_str: Date string (MM/DD/YYYY)
-		day_num: Day number
-	"""
-	try:
-		# Convert date to filename format (MM-DD-YYYY)
-		filename_date = date_str.replace("/", "-")
-		filename = f"orders_{filename_date}_Day{day_num}.json"
-		
-		# Convert orders to JSON-serializable format
-		orders_data = []
-		for order in orders:
-			order_dict = {
-				"order_id": order.order_id,
-				"route_id": order.route_id,
-				"location": order.location,
-				"order_date": order.order_date,
-				"total_trays": order.total_trays,
-				"total_stacks": order.total_stacks,
-				"items": []
-			}
-			
-			# Add order items
-			for item in order.items:
-				item_dict = {
-					"product_number": item.product_number,
-					"product_name": item.product_name,
-					"units_ordered": item.units_ordered,
-					"units_per_tray": item.units_per_tray,
-					"trays_needed": item.trays_needed,
-					"stack_height": item.stack_height,
-					"stacks_needed": item.stacks_needed,
-					"tray_type": item.tray_type
-				}
-				order_dict["items"].append(item_dict)
-			
-			orders_data.append(order_dict)
-		
-		# Save to JSON file
-		with open(filename, 'w') as f:
-			json.dump(orders_data, f, indent=2)
-		
-		print(f"Saved {len(orders)} orders to {filename}")
-		
-	except Exception as e:
-		print(f"Error saving orders to JSON: {e}")
-
-
 def save_orders_with_confirmation(orders, date_str, day_num):
 	"""
 	Save all orders to a single comprehensive JSON file with confirmed date/day information
@@ -889,16 +831,17 @@ def confirm_date_and_day_global(order_date, order_day):
 		return "Error saving selection state", "Please try again"
 
 
-def create_orders_with_confirmed_data_global(max_products):
+def create_orders_with_confirmed_data_global():
 	"""Create orders using the confirmed date and day from persistent state (global function)"""
 	
 	# Load confirmed data from file
 	confirmed_date, confirmed_day, is_confirmed = load_selection_state_global()
 	
 	if not is_confirmed or not confirmed_date:
-		return "Please confirm date and day selection first", []
+		return "Please confirm date and day selection first"
 	
-	return create_orders_for_date_and_day(confirmed_date, confirmed_day, max_products)
+	# Automatically use all 235 products for comprehensive order generation
+	return create_orders_for_date_and_day(confirmed_date, confirmed_day, 235)
 
 
 def clear_selection_state_global():
@@ -1047,31 +990,31 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 	with gr.Tab("System Overview"):
 		gr.Markdown("# Virtual Relay System - Professional Demo")
 		gr.Markdown("""
-		## 🏭 **Manufacturing Logistics Management System**
+		## **Manufacturing Logistics Management System**
 		
 		This system demonstrates a comprehensive order management and relay generation platform designed for manufacturing facilities. The application showcases real-world software engineering practices including API integration, data persistence, and professional user interface design.
 		
 		### **Key Features:**
 		
-		#### **📋 Order Management**
+		#### **Order Management**
 		- **API-Driven Date Selection**: North Carolina timezone integration via WorldTimeAPI
 		- **Structured Day Selection**: Day 1, 2, 4, 5, or 6 workflow management
 		- **Persistent State Management**: JSON file-based confirmation system
 		- **Comprehensive Order Generation**: 235 products across all routes and locations
 		
-		#### **🚛 Relay Generation**
+		#### **Relay Generation**
 		- **Automated Trailer Assignment**: 98-stack limit with automatic trailer #2, #3 creation
 		- **Location-Based Routing**: Multi-trailer support for high-volume locations
 		- **JSON Data Persistence**: Complete order-to-relay workflow with file storage
 		- **Professional Data Management**: Comprehensive metadata tracking
 		
-		#### **🔧 Technical Architecture**
+		#### **Technical Architecture**
 		- **Object-Oriented Design**: Clean separation of concerns with Order, Route, and Relay classes
 		- **File I/O Operations**: JSON serialization and deserialization for data persistence
 		- **Error Handling**: Comprehensive exception handling with fallback mechanisms
 		- **State Management**: Professional application state handling across sessions
 		
-		### **🎓 Software Engineering Practices Demonstrated:**
+		### **Software Engineering Practices Demonstrated:**
 		
 		- **API Integration**: WorldTimeAPI for real-time timezone management
 		- **Data Persistence**: JSON file storage for orders and system state
@@ -1079,7 +1022,7 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 		- **Error Resilience**: Robust error handling and user feedback systems
 		- **Separation of Concerns**: Modular architecture with distinct system responsibilities
 		
-		### **📊 System Statistics:**
+		### **System Statistics:**
 		""")
 		
 		# System status display
@@ -1101,7 +1044,7 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 				""")
 		
 		gr.Markdown("""
-		### **🚀 Getting Started:**
+		### **Getting Started:**
 		
 		1. **Orders Tab**: Get today's date, select day, confirm selection, then generate orders
 		2. **Relay Tab**: Select generated orders to create automated relay assignments
@@ -1117,14 +1060,10 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 		refresh_btn.click(lambda: (initialize_systems(), get_initial_dates()), outputs=[system_status, date_dropdown_1])
 
 	with gr.Tab("Orders"):
-		gr.Markdown("## Order Management System")
-		gr.Markdown("This page demonstrates the order management capabilities of the Virtual Relay System.")
+		gr.Markdown("## Order Management")
 		
 		with gr.Row():
 			with gr.Column(scale=1):
-				gr.Markdown("### Create Orders")
-				gr.Markdown("**Step 1:** Get today's date and select day")
-				gr.Markdown("**API Integration:** Get current North Carolina date automatically")
 				with gr.Row():
 					order_date_input = gr.Textbox(label="Order Date", placeholder="MM/DD/YYYY (e.g., 12/25/2024)", interactive=True)
 					get_today_btn = gr.Button("Get Today's Date", variant="secondary", size="sm")
@@ -1140,18 +1079,8 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 					clear_selection_btn = gr.Button("Clear Selection", variant="secondary")
 				date_day_status = gr.Textbox(label="Selection Status", value="Please select date and day, then confirm", interactive=False)
 				
-				gr.Markdown("**Step 2:** Configure order parameters")
-				max_products = gr.Slider(1, 235, value=235, step=1, label="Max products per order")
 				simulate_btn = gr.Button("Generate Orders for Confirmed Date & Day", variant="primary")
 				sim_msg = gr.Textbox(label="Order Creation Status", interactive=False)
-			
-			with gr.Column(scale=1):
-				gr.Markdown("### View Existing Orders")
-				gr.Markdown("View orders that have already been created:")
-				refresh_orders_btn = gr.Button("Refresh Order List")
-				order_date_dropdown = gr.Dropdown(choices=initial_dates, label="Select Date with Orders", interactive=True)
-				order_day_dropdown = gr.Dropdown(choices=[], label="Select Day with Orders", interactive=True)
-				order_summary = gr.Textbox(label="Order Summary", lines=8, interactive=False, value="Select a date and day to view existing orders")
 		
 		
 		# 🎓 API Integration: Connect the "Get Today's Date" button to our API function
@@ -1184,6 +1113,7 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 				print("DEBUG: Using default day value: 1")
 				return "1"
 		
+		
 		# Add change event to debug dropdown
 		order_creation_day_dropdown.change(debug_dropdown_value, inputs=[order_creation_day_dropdown], outputs=[])
 		
@@ -1192,17 +1122,11 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 		
 		confirm_date_day_btn.click(confirm_date_and_day_global, inputs=[order_date_input, order_creation_day_dropdown], outputs=[sim_msg, date_day_status])
 		clear_selection_btn.click(clear_selection_state_global, inputs=None, outputs=[order_date_input, order_creation_day_dropdown, date_day_status])
-		simulate_btn.click(create_orders_with_confirmed_data_global, inputs=[max_products], outputs=[sim_msg, order_date_dropdown])
-		refresh_orders_btn.click(get_dates, inputs=None, outputs=[order_date_dropdown])
-		order_date_dropdown.change(update_order_day_choices, inputs=[order_date_dropdown], outputs=[order_day_dropdown])
-		order_day_dropdown.change(get_order_summary_for_date_day, inputs=[order_date_dropdown, order_day_dropdown], outputs=[order_summary])
+		simulate_btn.click(create_orders_with_confirmed_data_global, inputs=None, outputs=[sim_msg])
 		get_today_btn.click(get_todays_date, inputs=None, outputs=[order_date_input])
 
 	with gr.Tab("Relay"):
 		gr.Markdown("## Relay Generation")
-		gr.Markdown("Create relays from orders stored in JSON files. Click on order IDs to load order data and generate relays.")
-		gr.Markdown("**API Integration:** All dates are synchronized with North Carolina timezone via WorldTimeAPI")
-		gr.Markdown("**Data Persistence:** Orders are stored in JSON files for reliable relay generation")
 		
 		# Get initial orders
 		initial_orders, _ = get_available_orders_for_relay()
