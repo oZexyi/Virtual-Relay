@@ -250,7 +250,6 @@ class OrderSystem:
         if order_date:
             # Convert MM/DD/YYYY to YYYY-MM-DD format
             try:
-                from datetime import datetime
                 parsed_date = datetime.strptime(order_date, "%m/%d/%Y")
                 formatted_date = parsed_date.strftime('%Y-%m-%d %H:%M:%S')
             except ValueError:
