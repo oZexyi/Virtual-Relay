@@ -1058,7 +1058,7 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 				with gr.Row():
 					order_date_input = gr.Textbox(label="Order Date", placeholder="MM/DD/YYYY (e.g., 12/25/2024)", interactive=True)
 					get_today_btn = gr.Button("Get Today's Date", variant="secondary", size="sm")
-				order_day_dropdown = gr.Dropdown(
+				order_creation_day_dropdown = gr.Dropdown(
 					choices=["1", "2", "4", "5", "6"],
 					label="Select Day",
 					interactive=True,
@@ -1096,8 +1096,7 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 		# Set initial values for UI components (only if we have valid values)
 		if initial_date:
 			order_date_input.value = initial_date
-		if initial_day and initial_day != "1":  # Only override if we have a different day
-			order_day_dropdown.value = initial_day
+		# Don't try to set dropdown value during initialization - let it use its default
 		if initial_status:
 			date_day_status.value = initial_status
 		
@@ -1106,11 +1105,23 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 			print(f"DEBUG: Dropdown value changed to: '{day_value}' (type: {type(day_value)})")
 			return day_value
 		
-		# Add change event to debug dropdown
-		order_day_dropdown.change(debug_dropdown_value, inputs=[order_day_dropdown], outputs=[])
+		# Function to initialize dropdown with saved day value
+		def initialize_dropdown_with_saved_day():
+			if initial_day and initial_day in ["1", "2", "4", "5", "6"]:
+				print(f"DEBUG: Initializing dropdown with saved day: {initial_day}")
+				return initial_day
+			else:
+				print("DEBUG: Using default day value: 1")
+				return "1"
 		
-		confirm_date_day_btn.click(confirm_date_and_day_global, inputs=[order_date_input, order_day_dropdown], outputs=[sim_msg, date_day_status])
-		clear_selection_btn.click(clear_selection_state_global, inputs=None, outputs=[order_date_input, order_day_dropdown, date_day_status])
+		# Add change event to debug dropdown
+		order_creation_day_dropdown.change(debug_dropdown_value, inputs=[order_creation_day_dropdown], outputs=[])
+		
+		# Initialize dropdown with saved value after UI is loaded
+		initialized_day = initialize_dropdown_with_saved_day()
+		
+		confirm_date_day_btn.click(confirm_date_and_day_global, inputs=[order_date_input, order_creation_day_dropdown], outputs=[sim_msg, date_day_status])
+		clear_selection_btn.click(clear_selection_state_global, inputs=None, outputs=[order_date_input, order_creation_day_dropdown, date_day_status])
 		simulate_btn.click(create_orders_with_confirmed_data_global, inputs=[max_products], outputs=[sim_msg, order_date_dropdown])
 		refresh_orders_btn.click(get_dates, inputs=None, outputs=[order_date_dropdown])
 		order_date_dropdown.change(update_order_day_choices, inputs=[order_date_dropdown], outputs=[order_day_dropdown])
