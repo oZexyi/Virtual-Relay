@@ -23,45 +23,55 @@ def initialize_systems():
 
 def ensure_order_system() -> str:
 	global order_system
-	if order_system is None:
-		order_system = OrderSystem()
-	return f"Catalog ready: {len(order_system.products)} products, {len(order_system.routes)} routes."
+	try:
+		if order_system is None:
+			order_system = OrderSystem()
+		return f"Catalog ready: {len(order_system.products)} products, {len(order_system.routes)} routes."
+	except Exception as e:
+		return f"Error loading catalog: {str(e)}"
 
 
 def ensure_relay_system() -> None:
 	global relay_system
-	if relay_system is None:
-		relay_system = RelaySystem()
-	# Keep relay_system's order_system in sync with global order_system
-	if order_system is not None:
-		relay_system.order_system = order_system
+	try:
+		if relay_system is None:
+			relay_system = RelaySystem()
+		# Keep relay_system's order_system in sync with global order_system
+		if order_system is not None:
+			relay_system.order_system = order_system
+	except Exception as e:
+		raise Exception(f"Error initializing relay system: {str(e)}")
 
 
 
 
 def create_orders_for_date(order_date: str, max_products: int):
 	"""Create orders for a specific date"""
-	if not order_date or not order_date.strip():
-		return "Please enter a date in MM/DD/YYYY format (e.g., 12/25/2024)", []
-	
-	# Validate date format
 	try:
-		from datetime import datetime
-		datetime.strptime(order_date.strip(), "%m/%d/%Y")
-	except ValueError:
-		return "Invalid date format. Please use MM/DD/YYYY format (e.g., 12/25/2024)", []
+		if not order_date or not order_date.strip():
+			return "Please enter a date in MM/DD/YYYY format (e.g., 12/25/2024)", []
+		
+		# Validate date format
+		try:
+			from datetime import datetime
+			datetime.strptime(order_date.strip(), "%m/%d/%Y")
+		except ValueError:
+			return "Invalid date format. Please use MM/DD/YYYY format (e.g., 12/25/2024)", []
+		
+		if max_products is None or max_products <= 0:
+			max_products = len(order_system.products) if order_system else 100
+		
+		msg = ensure_order_system()
+		ensure_relay_system()
+		
+		# Create orders with the specified date
+		orders = order_system.simulate_random_orders(max_products, order_date.strip())
+		dates = sorted(set(o.order_date.split(" ")[0] for o in order_system.get_all_orders()))
+		
+		return f"{msg}\nCreated {len(orders)} orders for {order_date} with up to {max_products} products per route.", dates
 	
-	if max_products is None or max_products <= 0:
-		max_products = len(order_system.products) if order_system else 100
-	
-	msg = ensure_order_system()
-	ensure_relay_system()
-	
-	# Create orders with the specified date
-	orders = order_system.simulate_random_orders(max_products, order_date.strip())
-	dates = sorted(set(o.order_date.split(" ")[0] for o in order_system.get_all_orders()))
-	
-	return f"{msg}\nCreated {len(orders)} orders for {order_date} with up to {max_products} products per route.", dates
+	except Exception as e:
+		return f"Error creating orders: {str(e)}", []
 
 
 def simulate_orders(max_products: int):
@@ -105,7 +115,7 @@ def get_order_summary(selected_date: str):
 	# Group orders by location
 	locations = {}
 	for order in orders_for_date:
-		location = order.route_name
+		location = order.location
 		if location not in locations:
 			locations[location] = []
 		locations[location].append(order)
