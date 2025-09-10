@@ -157,25 +157,34 @@ def get_dates():
 	try:
 		import glob
 		
+		print("DEBUG: get_dates() called")
+		
 		# Look for consolidated order files first
 		consolidated_files = glob.glob("all_orders_*.json")
 		confirmed_files = glob.glob("confirmed_orders_*.json")
 		order_files = glob.glob("orders_*.json")
+		
+		print(f"DEBUG: Found files - consolidated: {len(consolidated_files)}, confirmed: {len(confirmed_files)}, orders: {len(order_files)}")
 		
 		dates = set()
 		
 		# Process consolidated order files first (most preferred)
 		for file_path in consolidated_files:
 			try:
+				print(f"DEBUG: Reading consolidated file: {file_path}")
 				with open(file_path, 'r') as f:
 					file_data = json.load(f)
 				
 				# Get confirmed date from metadata
 				metadata = file_data.get('metadata', {})
 				confirmed_date = metadata.get('confirmed_date', '')
+				print(f"DEBUG: Found confirmed_date in metadata: '{confirmed_date}'")
 				
 				if confirmed_date:
 					dates.add(confirmed_date)
+					print(f"DEBUG: Added date to set: '{confirmed_date}'")
+				else:
+					print(f"DEBUG: No confirmed_date found in metadata")
 					
 			except Exception as e:
 				print(f"Error reading consolidated order file {file_path}: {e}")
@@ -226,6 +235,7 @@ def get_dates():
 					print(f"Error reading order file {file_path}: {e}")
 					continue
 		
+		print(f"DEBUG: get_dates() returning {len(dates)} dates: {sorted(dates)}")
 		return sorted(dates)
 	except Exception as e:
 		print(f"Error getting dates: {e}")
@@ -237,10 +247,14 @@ def get_initial_dates():
 	try:
 		import glob
 		
+		print("DEBUG: get_initial_dates() called")
+		
 		# Look for consolidated order files first
 		consolidated_files = glob.glob("all_orders_*.json")
 		confirmed_files = glob.glob("confirmed_orders_*.json")
 		order_files = glob.glob("orders_*.json")
+		
+		print(f"DEBUG: Found files - consolidated: {len(consolidated_files)}, confirmed: {len(confirmed_files)}, orders: {len(order_files)}")
 		
 		dates = set()
 		
@@ -306,6 +320,7 @@ def get_initial_dates():
 					print(f"Error reading order file {file_path}: {e}")
 					continue
 		
+		print(f"DEBUG: get_initial_dates() returning {len(dates)} dates: {sorted(dates)}")
 		return sorted(dates)
 	except Exception as e:
 		print(f"Error getting initial dates: {e}")
@@ -373,6 +388,8 @@ def get_available_days_for_date(selected_date: str):
 def get_available_orders_for_relay():
 	"""Get available orders from comprehensive JSON files for relay selection"""
 	try:
+		print("DEBUG: get_available_orders_for_relay() called")
+		
 		# Look for comprehensive order JSON files in the current directory
 		import os
 		import glob
@@ -381,6 +398,8 @@ def get_available_orders_for_relay():
 		consolidated_files = glob.glob("all_orders_*.json")
 		confirmed_files = glob.glob("confirmed_orders_*.json")
 		order_files = glob.glob("orders_*.json")
+		
+		print(f"DEBUG: Found files - consolidated: {len(consolidated_files)}, confirmed: {len(confirmed_files)}, orders: {len(order_files)}")
 		
 		formatted_orders = []
 		order_data = {}
@@ -483,6 +502,7 @@ def get_available_orders_for_relay():
 					print(f"Error reading order file {file_path}: {e}")
 					continue
 		
+		print(f"DEBUG: get_available_orders_for_relay() returning {len(formatted_orders)} orders")
 		return sorted(formatted_orders), order_data
 	except Exception as e:
 		print(f"Error getting orders for relay: {e}")
