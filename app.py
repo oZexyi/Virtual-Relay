@@ -39,9 +39,35 @@ def ensure_relay_system() -> None:
 
 
 
-def simulate_orders(max_products: int):
+def create_orders_for_date(order_date: str, max_products: int):
+	"""Create orders for a specific date"""
+	if not order_date or not order_date.strip():
+		return "Please enter a date in MM/DD/YYYY format (e.g., 12/25/2024)", []
+	
+	# Validate date format
+	try:
+		from datetime import datetime
+		datetime.strptime(order_date.strip(), "%m/%d/%Y")
+	except ValueError:
+		return "Invalid date format. Please use MM/DD/YYYY format (e.g., 12/25/2024)", []
+	
 	if max_products is None or max_products <= 0:
-		max_products = len(order_system.products) if order_system else 100  # Use all products
+		max_products = len(order_system.products) if order_system else 100
+	
+	msg = ensure_order_system()
+	ensure_relay_system()
+	
+	# Create orders with the specified date
+	orders = order_system.simulate_random_orders(max_products, order_date.strip())
+	dates = sorted(set(o.order_date.split(" ")[0] for o in order_system.get_all_orders()))
+	
+	return f"{msg}\nCreated {len(orders)} orders for {order_date} with up to {max_products} products per route.", dates
+
+
+def simulate_orders(max_products: int):
+	"""Legacy function - kept for compatibility"""
+	if max_products is None or max_products <= 0:
+		max_products = len(order_system.products) if order_system else 100
 	msg = ensure_order_system()
 	ensure_relay_system()
 	orders = order_system.simulate_random_orders(max_products)
@@ -53,6 +79,16 @@ def get_dates():
 	ensure_order_system()
 	dates = sorted(set(o.order_date.split(" ")[0] for o in order_system.get_all_orders()))
 	return dates
+
+
+def get_initial_dates():
+	"""Get dates on startup, return empty list if no orders exist yet"""
+	try:
+		ensure_order_system()
+		dates = sorted(set(o.order_date.split(" ")[0] for o in order_system.get_all_orders()))
+		return dates
+	except:
+		return []
 
 
 def get_order_summary(selected_date: str):
@@ -143,15 +179,16 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 	
 	# Initialize systems on startup
 	initial_status = initialize_systems()
+	initial_dates = get_initial_dates()
 	
 	with gr.Tab("Catalog"):
 		gr.Markdown("System is ready with built-in products and routes catalog.")
 		catalog_msg = gr.Textbox(label="Status", value=initial_status, interactive=False)
-		date_dropdown_1 = gr.Dropdown(choices=[], label="Available Dates", interactive=False)
+		date_dropdown_1 = gr.Dropdown(choices=initial_dates, label="Available Dates", interactive=False)
 		
 		# Refresh button to reload the catalog
 		refresh_btn = gr.Button("Refresh Catalog")
-		refresh_btn.click(lambda: (initialize_systems(), []), outputs=[catalog_msg, date_dropdown_1])
+		refresh_btn.click(lambda: (initialize_systems(), get_initial_dates()), outputs=[catalog_msg, date_dropdown_1])
 
 	with gr.Tab("Orders"):
 		gr.Markdown("## Order Management System")
@@ -159,31 +196,34 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 		
 		with gr.Row():
 			with gr.Column(scale=1):
-				gr.Markdown("### Demo Orders")
-				gr.Markdown("Generate sample orders to test the system:")
+				gr.Markdown("### Create Orders")
+				gr.Markdown("**Step 1:** Select a date for your orders")
+				order_date_input = gr.Textbox(label="Order Date", placeholder="MM/DD/YYYY (e.g., 12/25/2024)", interactive=True)
+				gr.Markdown("**Step 2:** Configure order parameters")
 				max_products = gr.Slider(1, 235, value=235, step=1, label="Max products per order")
-				simulate_btn = gr.Button("Generate Demo Orders", variant="primary")
-				sim_msg = gr.Textbox(label="Demo Status", interactive=False)
+				simulate_btn = gr.Button("Generate Orders for Selected Date", variant="primary")
+				sim_msg = gr.Textbox(label="Order Creation Status", interactive=False)
 			
 			with gr.Column(scale=1):
-				gr.Markdown("### Order Overview")
-				gr.Markdown("View and manage existing orders:")
-				date_dropdown_2 = gr.Dropdown(choices=[], label="Select Date", interactive=True)
-				order_summary = gr.Textbox(label="Order Summary", lines=8, interactive=False)
-				refresh_orders_btn = gr.Button("Refresh Orders")
+				gr.Markdown("### View Existing Orders")
+				gr.Markdown("View orders that have already been created:")
+				date_dropdown_2 = gr.Dropdown(choices=initial_dates, label="Select Date with Orders", interactive=True)
+				order_summary = gr.Textbox(label="Order Summary", lines=8, interactive=False, value="Select a date to view existing orders")
+				refresh_orders_btn = gr.Button("Refresh Order List")
 		
-		simulate_btn.click(simulate_orders, inputs=[max_products], outputs=[sim_msg, date_dropdown_2])
+		simulate_btn.click(create_orders_for_date, inputs=[order_date_input, max_products], outputs=[sim_msg, date_dropdown_2])
 		date_dropdown_2.change(lambda date: get_order_summary(date) if date else "Select a date to view orders", inputs=[date_dropdown_2], outputs=[order_summary])
-		refresh_orders_btn.click(get_dates, outputs=[date_dropdown_2])
+		refresh_orders_btn.click(lambda: (get_dates(), "Select a date to view orders"), outputs=[date_dropdown_2, order_summary])
 
 	with gr.Tab("Relay"):
-		gr.Markdown("Select a date, optionally enter a day number, and generate the relay.")
-		refresh_dates_btn = gr.Button("Refresh Dates")
-		date_select = gr.Dropdown(choices=[], label="Date", interactive=True)
+		gr.Markdown("## Relay Generation")
+		gr.Markdown("Create relays from existing orders. Only dates with orders are available for selection.")
+		refresh_dates_btn = gr.Button("Refresh Available Dates")
+		date_select = gr.Dropdown(choices=initial_dates, label="Select Date with Orders", interactive=True)
 		day_input = gr.Textbox(label="Day Number (optional)", placeholder="e.g., 1")
-		create_btn = gr.Button("Create Relay")
-		summary_out = gr.Textbox(label="Relay Summary", lines=12)
-		details_out = gr.Textbox(label="Order Details", lines=16)
+		create_btn = gr.Button("Create Relay", variant="primary")
+		summary_out = gr.Textbox(label="Relay Summary", lines=12, value="Create orders first, then select a date with orders to generate relay")
+		details_out = gr.Textbox(label="Trailer & Order Details", lines=16)
 
 		refresh_dates_btn.click(get_dates, inputs=None, outputs=[date_select])
 		create_btn.click(create_relay, inputs=[date_select, day_input], outputs=[summary_out, details_out])

@@ -112,7 +112,7 @@ class OrderSystem:
         # All products are available for every route
         return list(self.products.values())
     
-    def simulate_random_orders(self, max_products_per_order: int = 50) -> List[Order]:
+    def simulate_random_orders(self, max_products_per_order: int = 50, order_date: str = None) -> List[Order]:
         """Simulate random orders for every single route available"""
         simulated_orders = []
         routes = list(self.routes.values())
@@ -139,7 +139,7 @@ class OrderSystem:
                 })
             
             # Create the order for this route
-            order = self.create_order(route.route_id, order_items)
+            order = self.create_order(route.route_id, order_items, order_date)
             if order:
                 simulated_orders.append(order)
         
@@ -186,10 +186,11 @@ class OrderSystem:
         
         return trays_needed, stacks_needed
     
-    def create_order(self, route_id: int, order_items: List[Dict]) -> Optional[Order]:
+    def create_order(self, route_id: int, order_items: List[Dict], order_date: str = None) -> Optional[Order]:
         """
         Create a new order
         order_items: List of dicts with 'product_number' and 'units_ordered'
+        order_date: Optional date string in MM/DD/YYYY format
         """
         if route_id not in self.routes:
             print(f"Route '{route_id}' not found.")
@@ -245,11 +246,23 @@ class OrderSystem:
             print("No valid items in order.")
             return None
         
+        # Use provided date or current date
+        if order_date:
+            # Convert MM/DD/YYYY to YYYY-MM-DD format
+            try:
+                from datetime import datetime
+                parsed_date = datetime.strptime(order_date, "%m/%d/%Y")
+                formatted_date = parsed_date.strftime('%Y-%m-%d %H:%M:%S')
+            except ValueError:
+                formatted_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        else:
+            formatted_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
         order = Order(
             order_id=order_id,
             route_id=route_id,
             location=route.location,
-            order_date=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            order_date=formatted_date,
             items=processed_items,
             total_trays=total_trays,
             total_stacks=total_stacks
