@@ -147,19 +147,25 @@ def get_initial_dates():
 	"""Get dates on startup, return empty list if no orders exist yet"""
 	try:
 		ensure_order_system()
-		# Extract dates from order_date strings, handling both formats:
-		# "YYYY-MM-DD HH:MM:SS" and "YYYY-MM-DD Day X HH:MM:SS"
+		# Extract dates from order_date strings and convert to MM/DD/YYYY format
 		dates = set()
 		for order in order_system.get_all_orders():
 			date_part = order.order_date.split(" ")[0]  # Get YYYY-MM-DD part
-			dates.add(date_part)
+			try:
+				# Convert YYYY-MM-DD to MM/DD/YYYY
+				parsed_date = datetime.strptime(date_part, "%Y-%m-%d")
+				formatted_date = parsed_date.strftime("%m/%d/%Y")
+				dates.add(formatted_date)
+			except ValueError:
+				# If already in MM/DD/YYYY format, use as is
+				dates.add(date_part)
 		return sorted(dates)
 	except:
 		return []
 
 
 def get_available_dates_and_days():
-	"""Get available dates and days for dropdowns"""
+	"""Get available dates and days for dropdowns in MM/DD/YYYY format"""
 	try:
 		ensure_order_system()
 		dates = set()
@@ -167,14 +173,26 @@ def get_available_dates_and_days():
 		
 		for order in order_system.get_all_orders():
 			date_part = order.order_date.split(" ")[0]  # Get YYYY-MM-DD part
-			dates.add(date_part)
-			
-			# Extract day number if present
-			if "Day" in order.order_date:
-				day_part = order.order_date.split("Day ")[1].split(" ")[0]
-				date_day_combinations.add((date_part, day_part))
-			else:
-				date_day_combinations.add((date_part, "1"))  # Default to day 1
+			try:
+				# Convert YYYY-MM-DD to MM/DD/YYYY
+				parsed_date = datetime.strptime(date_part, "%Y-%m-%d")
+				formatted_date = parsed_date.strftime("%m/%d/%Y")
+				dates.add(formatted_date)
+				
+				# Extract day number if present
+				if "Day" in order.order_date:
+					day_part = order.order_date.split("Day ")[1].split(" ")[0]
+					date_day_combinations.add((formatted_date, day_part))
+				else:
+					date_day_combinations.add((formatted_date, "1"))  # Default to day 1
+			except ValueError:
+				# If already in MM/DD/YYYY format, use as is
+				dates.add(date_part)
+				if "Day" in order.order_date:
+					day_part = order.order_date.split("Day ")[1].split(" ")[0]
+					date_day_combinations.add((date_part, day_part))
+				else:
+					date_day_combinations.add((date_part, "1"))
 		
 		return sorted(dates), sorted(date_day_combinations)
 	except Exception as e:
@@ -211,14 +229,48 @@ def get_available_orders_for_relay():
 		import os
 		import glob
 		
-		# First try to find confirmed order files
+		# First try to find consolidated order files
+		consolidated_files = glob.glob("all_orders_*.json")
 		confirmed_files = glob.glob("confirmed_orders_*.json")
 		order_files = glob.glob("orders_*.json")
 		
 		formatted_orders = []
 		order_data = {}
 		
-		# Process confirmed order files first (preferred)
+		# Process consolidated order files first (most preferred)
+		for file_path in consolidated_files:
+			try:
+				with open(file_path, 'r') as f:
+					file_data = json.load(f)
+				
+				# Extract confirmation and orders data
+				confirmation = file_data.get('confirmation', {})
+				orders = file_data.get('orders', [])
+				metadata = file_data.get('metadata', {})
+				
+				for order in orders:
+					order_id = order.get('order_id', 'Unknown')
+					order_date = order.get('order_date', '')
+					location = order.get('location', 'Unknown')
+					
+					# Use confirmed date/day from metadata
+					confirmed_date = metadata.get('confirmed_date', '')
+					confirmed_day = metadata.get('confirmed_day', '1')
+					
+					# Format for display with consolidation info
+					order_display = f"{order_id} - {confirmed_date} Day {confirmed_day} - {location} [CONSOLIDATED]"
+					formatted_orders.append(order_display)
+					order_data[order_display] = {
+						'order': order,
+						'confirmation': confirmation,
+						'metadata': metadata
+					}
+					
+			except Exception as e:
+				print(f"Error reading consolidated order file {file_path}: {e}")
+				continue
+		
+		# Process confirmed order files second (fallback)
 		for file_path in confirmed_files:
 			try:
 				with open(file_path, 'r') as f:
@@ -251,8 +303,8 @@ def get_available_orders_for_relay():
 				print(f"Error reading confirmed order file {file_path}: {e}")
 				continue
 		
-		# Process regular order files if no confirmed files found
-		if not confirmed_files:
+		# Process regular order files if no consolidated or confirmed files found
+		if not consolidated_files and not confirmed_files:
 			for file_path in order_files:
 				try:
 					with open(file_path, 'r') as f:
@@ -649,28 +701,34 @@ def save_orders_to_json(orders, date_str, day_num):
 
 def save_orders_with_confirmation(orders, date_str, day_num):
 	"""
-	Save orders to JSON file with confirmed date/day information for relay generation
+	Save all orders to a single comprehensive JSON file with confirmed date/day information
 	
-	This function creates a comprehensive JSON file that includes:
-	- All order data
+	This function creates one consolidated JSON file that includes:
+	- All order data for all routes and locations
 	- Confirmed date and day information
-	- Metadata for relay generation
+	- Complete metadata for relay generation
 	
 	Args:
-		orders: List of Order objects
+		orders: List of Order objects (all orders for all routes)
 		date_str: Date string (MM/DD/YYYY)
 		day_num: Day number
 	"""
 	try:
 		# Convert date to filename format (MM-DD-YYYY)
 		filename_date = date_str.replace("/", "-")
-		filename = f"confirmed_orders_{filename_date}_Day{day_num}.json"
+		filename = f"all_orders_{filename_date}_Day{day_num}.json"
 		
 		# Load current confirmation state
 		confirmation_data = load_confirmation_state()
 		
-		# Convert orders to JSON-serializable format
+		# Convert all orders to JSON-serializable format
 		orders_data = []
+		total_products = 0
+		total_trays = 0
+		total_stacks = 0
+		unique_locations = set()
+		unique_routes = set()
+		
 		for order in orders:
 			order_dict = {
 				"order_id": order.order_id,
@@ -695,8 +753,13 @@ def save_orders_with_confirmation(orders, date_str, day_num):
 					"tray_type": item.tray_type
 				}
 				order_dict["items"].append(item_dict)
+				total_products += 1
 			
 			orders_data.append(order_dict)
+			total_trays += order.total_trays
+			total_stacks += order.total_stacks
+			unique_locations.add(order.location)
+			unique_routes.add(order.route_id)
 		
 		# Create comprehensive data structure
 		comprehensive_data = {
@@ -704,21 +767,28 @@ def save_orders_with_confirmation(orders, date_str, day_num):
 			"orders": orders_data,
 			"metadata": {
 				"total_orders": len(orders),
+				"total_products": total_products,
+				"total_trays": total_trays,
+				"total_stacks": total_stacks,
+				"unique_locations": len(unique_locations),
+				"unique_routes": len(unique_routes),
 				"confirmed_date": date_str,
 				"confirmed_day": day_num,
 				"generation_timestamp": datetime.now().isoformat(),
-				"ready_for_relay": True
+				"ready_for_relay": True,
+				"file_type": "consolidated_orders"
 			}
 		}
 		
-		# Save to JSON file
+		# Save to single JSON file
 		with open(filename, 'w') as f:
 			json.dump(comprehensive_data, f, indent=2)
 		
-		print(f"Saved {len(orders)} orders with confirmation data to {filename}")
+		print(f"Saved {len(orders)} orders with {total_products} total products to single file: {filename}")
+		print(f"Coverage: {len(unique_locations)} locations, {len(unique_routes)} routes")
 		
 	except Exception as e:
-		print(f"Error saving orders with confirmation: {e}")
+		print(f"Error saving consolidated orders: {e}")
 
 
 def load_confirmation_state():
@@ -1103,7 +1173,7 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 		# Debug function to check dropdown value
 		def debug_dropdown_value(day_value):
 			print(f"DEBUG: Dropdown value changed to: '{day_value}' (type: {type(day_value)})")
-			return day_value
+			# Don't return anything - this is just for debugging
 		
 		# Function to initialize dropdown with saved day value
 		def initialize_dropdown_with_saved_day():
