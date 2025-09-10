@@ -16,12 +16,45 @@ relay_system: RelaySystem | None = None
 def initialize_systems():
 	global order_system, relay_system
 	try:
+		# Clean up old order files on startup
+		cleanup_old_order_files()
+		
 		order_system = OrderSystem()
 		relay_system = RelaySystem()
 		relay_system.order_system = order_system
 		return f"System ready: {len(order_system.products)} products, {len(order_system.routes)} routes."
 	except Exception as e:
 		return f"Error initializing system: {str(e)}"
+
+
+def cleanup_old_order_files():
+	"""Clean up old order files from previous runs"""
+	try:
+		import glob
+		import os
+		
+		# Find all order files
+		order_files = glob.glob("all_orders_*.json") + glob.glob("confirmed_orders_*.json") + glob.glob("orders_*.json")
+		
+		# Keep only the most recent consolidated file, delete the rest
+		if order_files:
+			# Sort by modification time (newest first)
+			order_files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+			
+			# Keep the newest consolidated file, delete others
+			kept_files = []
+			for file in order_files:
+				if file.startswith("all_orders_") and not kept_files:
+					kept_files.append(file)
+					print(f"Keeping most recent consolidated file: {file}")
+				else:
+					os.remove(file)
+					print(f"Deleted old file: {file}")
+			
+			print(f"Cleanup complete: {len(order_files)} files processed, {len(kept_files)} kept")
+		
+	except Exception as e:
+		print(f"Error during cleanup: {e}")
 
 def ensure_order_system() -> str:
 	global order_system
@@ -50,65 +83,47 @@ def ensure_relay_system() -> None:
 def create_orders_for_date_and_day(order_date: str, order_day: str, max_products: int):
 	"""Create orders for a specific date and day"""
 	try:
-		print(f"DEBUG: create_orders_for_date_and_day called with date='{order_date}', day='{order_day}', max_products={max_products}")
 		
 		if not order_date or not order_date.strip():
-			print("DEBUG: No date provided")
 			return "Please enter a date in MM/DD/YYYY format (e.g., 12/25/2024)", []
 		
 		if not order_day:
-			print("DEBUG: No day provided")
 			return "Please select a day from the dropdown (1, 2, 4, 5, or 6)", []
 		
 		# Validate date format
 		try:
 			from datetime import datetime
 			datetime.strptime(order_date.strip(), "%m/%d/%Y")
-			print(f"DEBUG: Date format validation passed for '{order_date.strip()}'")
 		except ValueError:
-			print(f"DEBUG: Date format validation failed for '{order_date.strip()}'")
 			return "Invalid date format. Please use MM/DD/YYYY format (e.g., 12/25/2024)", []
 		
 		# Validate day number (from dropdown, so should be valid)
 		try:
 			day_num = int(order_day)
 			if day_num not in [1, 2, 4, 5, 6]:
-				print(f"DEBUG: Invalid day number: {day_num}")
 				return "Invalid day selected. Please select Day 1, 2, 4, 5, or 6.", []
-			print(f"DEBUG: Day validation passed for '{order_day}'")
 		except ValueError:
-			print(f"DEBUG: Day conversion failed for '{order_day}'")
 			return "Invalid day selected. Please select Day 1, 2, 4, 5, or 6.", []
 		
 		if max_products is None or max_products <= 0:
 			max_products = 235  # Use all 235 products for comprehensive order generation
-			print(f"DEBUG: Set max_products to {max_products} (all products)")
 		
-		print(f"DEBUG: Initializing systems...")
 		msg = ensure_order_system()
 		ensure_relay_system()
-		print(f"DEBUG: Systems initialized: {msg}")
 		
 		# Create orders with the specified date and day
-		print(f"DEBUG: Creating orders with simulate_random_orders...")
 		orders = order_system.simulate_random_orders(max_products, order_date.strip(), day_num)
-		print(f"DEBUG: simulate_random_orders returned {len(orders)} orders")
 		
 		# Save orders to JSON file with confirmed date/day information
 		if orders:
-			print(f"DEBUG: Calling save_orders_with_confirmation with {len(orders)} orders")
 			save_orders_with_confirmation(orders, order_date.strip(), day_num)
-		else:
-			print("DEBUG: No orders to save!")
 		
 		# Get dates from in-memory system (for backward compatibility)
 		dates = sorted(set(o.order_date.split(" ")[0] for o in order_system.get_all_orders()))
-		print(f"DEBUG: Found {len(dates)} dates in in-memory system: {dates}")
 		
 		return f"{msg}\nCreated {len(orders)} orders for {order_date} Day {day_num} with up to {max_products} products per route.\n\nOrders saved to JSON file with confirmed date/day for relay generation.", dates
 	
 	except Exception as e:
-		print(f"DEBUG: Exception in create_orders_for_date_and_day: {e}")
 		return f"Error creating orders: {str(e)}", []
 
 
@@ -157,34 +172,28 @@ def get_dates():
 	try:
 		import glob
 		
-		print("DEBUG: get_dates() called")
 		
 		# Look for consolidated order files first
 		consolidated_files = glob.glob("all_orders_*.json")
 		confirmed_files = glob.glob("confirmed_orders_*.json")
 		order_files = glob.glob("orders_*.json")
 		
-		print(f"DEBUG: Found files - consolidated: {len(consolidated_files)}, confirmed: {len(confirmed_files)}, orders: {len(order_files)}")
 		
 		dates = set()
 		
 		# Process consolidated order files first (most preferred)
 		for file_path in consolidated_files:
 			try:
-				print(f"DEBUG: Reading consolidated file: {file_path}")
 				with open(file_path, 'r') as f:
 					file_data = json.load(f)
 				
 				# Get confirmed date from metadata
 				metadata = file_data.get('metadata', {})
 				confirmed_date = metadata.get('confirmed_date', '')
-				print(f"DEBUG: Found confirmed_date in metadata: '{confirmed_date}'")
 				
 				if confirmed_date:
 					dates.add(confirmed_date)
-					print(f"DEBUG: Added date to set: '{confirmed_date}'")
 				else:
-					print(f"DEBUG: No confirmed_date found in metadata")
 					
 			except Exception as e:
 				print(f"Error reading consolidated order file {file_path}: {e}")
@@ -235,7 +244,6 @@ def get_dates():
 					print(f"Error reading order file {file_path}: {e}")
 					continue
 		
-		print(f"DEBUG: get_dates() returning {len(dates)} dates: {sorted(dates)}")
 		return sorted(dates)
 	except Exception as e:
 		print(f"Error getting dates: {e}")
@@ -247,14 +255,12 @@ def get_initial_dates():
 	try:
 		import glob
 		
-		print("DEBUG: get_initial_dates() called")
 		
 		# Look for consolidated order files first
 		consolidated_files = glob.glob("all_orders_*.json")
 		confirmed_files = glob.glob("confirmed_orders_*.json")
 		order_files = glob.glob("orders_*.json")
 		
-		print(f"DEBUG: Found files - consolidated: {len(consolidated_files)}, confirmed: {len(confirmed_files)}, orders: {len(order_files)}")
 		
 		dates = set()
 		
@@ -320,7 +326,6 @@ def get_initial_dates():
 					print(f"Error reading order file {file_path}: {e}")
 					continue
 		
-		print(f"DEBUG: get_initial_dates() returning {len(dates)} dates: {sorted(dates)}")
 		return sorted(dates)
 	except Exception as e:
 		print(f"Error getting initial dates: {e}")
@@ -388,7 +393,6 @@ def get_available_days_for_date(selected_date: str):
 def get_available_orders_for_relay():
 	"""Get available orders from comprehensive JSON files for relay selection"""
 	try:
-		print("DEBUG: get_available_orders_for_relay() called")
 		
 		# Look for comprehensive order JSON files in the current directory
 		import os
@@ -399,7 +403,6 @@ def get_available_orders_for_relay():
 		confirmed_files = glob.glob("confirmed_orders_*.json")
 		order_files = glob.glob("orders_*.json")
 		
-		print(f"DEBUG: Found files - consolidated: {len(consolidated_files)}, confirmed: {len(confirmed_files)}, orders: {len(order_files)}")
 		
 		formatted_orders = []
 		order_data = {}
@@ -502,7 +505,6 @@ def get_available_orders_for_relay():
 					print(f"Error reading order file {file_path}: {e}")
 					continue
 		
-		print(f"DEBUG: get_available_orders_for_relay() returning {len(formatted_orders)} orders")
 		return sorted(formatted_orders), order_data
 	except Exception as e:
 		print(f"Error getting orders for relay: {e}")
@@ -614,12 +616,10 @@ def load_orders_from_json_files(selected_date: str, day_number: int = None):
 		confirmed_files = glob.glob("confirmed_orders_*.json")
 		order_files = glob.glob("orders_*.json")
 		
-		print(f"DEBUG: Found files - consolidated: {len(consolidated_files)}, confirmed: {len(confirmed_files)}, orders: {len(order_files)}")
 		
 		# Process consolidated order files first (most preferred)
 		for file_path in consolidated_files:
 			try:
-				print(f"DEBUG: Reading consolidated file: {file_path}")
 				with open(file_path, 'r') as f:
 					file_data = json.load(f)
 				
@@ -687,7 +687,6 @@ def load_orders_from_json_files(selected_date: str, day_number: int = None):
 def create_relay_from_orders_data(orders_data):
 	"""Create relay locations from orders data loaded from JSON files"""
 	try:
-		print(f"DEBUG: create_relay_from_orders_data called with {len(orders_data)} orders")
 		
 		# Group orders by location
 		location_orders = {}
@@ -697,12 +696,10 @@ def create_relay_from_orders_data(orders_data):
 				location_orders[location] = []
 			location_orders[location].append(order_data)
 		
-		print(f"DEBUG: Grouped orders into {len(location_orders)} locations")
 		
 		# Create Location objects from orders
 		locations = []
 		for location_name, location_orders_list in location_orders.items():
-			print(f"DEBUG: Creating location '{location_name}' with {len(location_orders_list)} orders")
 			
 			# Calculate total trays and stacks for this location
 			total_trays = 0
@@ -720,9 +717,7 @@ def create_relay_from_orders_data(orders_data):
 			location.assign_trailers()
 			
 			locations.append(location)
-			print(f"DEBUG: Created location '{location_name}' with {total_trays} trays, {total_stacks} stacks, {len(location.trailers)} trailers")
 		
-		print(f"DEBUG: Created {len(locations)} locations for relay")
 		return locations
 		
 	except Exception as e:
@@ -735,7 +730,6 @@ def create_relay(selected_date: str, day_number: str | None):
 		if not selected_date:
 			return "Please select a date first.", ""
 		
-		print(f"DEBUG: create_relay called with date='{selected_date}', day='{day_number}'")
 		
 		ensure_order_system()
 		ensure_relay_system()
@@ -748,14 +742,11 @@ def create_relay(selected_date: str, day_number: str | None):
 				day_num_int = None
 
 		# Load orders from JSON files instead of in-memory system
-		print(f"DEBUG: Loading orders from JSON files for date '{selected_date}'")
 		orders = load_orders_from_json_files(selected_date, day_num_int)
 		
 		if not orders:
-			print(f"DEBUG: No orders found in JSON files for date '{selected_date}'")
 			return f"No orders found for {selected_date} Day {day_number if day_number else '1'}.", ""
 		
-		print(f"DEBUG: Found {len(orders)} orders in JSON files")
 		
 		# Create relay from loaded orders
 		locations = create_relay_from_orders_data(orders)
@@ -965,17 +956,13 @@ def save_orders_with_confirmation(orders, date_str, day_num):
 		day_num: Day number
 	"""
 	try:
-		print(f"DEBUG: save_orders_with_confirmation called with {len(orders)} orders")
-		print(f"DEBUG: Date: {date_str}, Day: {day_num}")
 		
 		# Convert date to filename format (MM-DD-YYYY)
 		filename_date = date_str.replace("/", "-")
 		filename = f"all_orders_{filename_date}_Day{day_num}.json"
-		print(f"DEBUG: Target filename: {filename}")
 		
 		# Load current confirmation state
 		confirmation_data = load_confirmation_state()
-		print(f"DEBUG: Loaded confirmation data: {confirmation_data}")
 		
 		# Convert all orders to JSON-serializable format
 		orders_data = []
@@ -985,10 +972,7 @@ def save_orders_with_confirmation(orders, date_str, day_num):
 		unique_locations = set()
 		unique_routes = set()
 		
-		print(f"DEBUG: Processing {len(orders)} orders...")
 		for i, order in enumerate(orders):
-			if i < 3:  # Debug first 3 orders
-				print(f"DEBUG: Order {i+1}: {order.order_id} - {order.location} - {len(order.items)} items")
 			
 			order_dict = {
 				"order_id": order.order_id,
@@ -1021,8 +1005,6 @@ def save_orders_with_confirmation(orders, date_str, day_num):
 			unique_locations.add(order.location)
 			unique_routes.add(order.route_id)
 		
-		print(f"DEBUG: Processed all orders - Total products: {total_products}, Total trays: {total_trays}, Total stacks: {total_stacks}")
-		print(f"DEBUG: Unique locations: {len(unique_locations)}, Unique routes: {len(unique_routes)}")
 		
 		# Create comprehensive data structure
 		comprehensive_data = {
@@ -1043,14 +1025,11 @@ def save_orders_with_confirmation(orders, date_str, day_num):
 			}
 		}
 		
-		print(f"DEBUG: About to save JSON file: {filename}")
-		print(f"DEBUG: JSON data structure size - orders: {len(comprehensive_data['orders'])}, metadata keys: {len(comprehensive_data['metadata'])}")
 		
 		# Save to single JSON file
 		with open(filename, 'w') as f:
 			json.dump(comprehensive_data, f, indent=2)
 		
-		print(f"DEBUG: Successfully saved JSON file: {filename}")
 		print(f"Saved {len(orders)} orders with {total_products} total products to single file: {filename}")
 		print(f"Coverage: {len(unique_locations)} locations, {len(unique_routes)} routes")
 		
@@ -1058,9 +1037,7 @@ def save_orders_with_confirmation(orders, date_str, day_num):
 		import os
 		if os.path.exists(filename):
 			file_size = os.path.getsize(filename)
-			print(f"DEBUG: File exists and is {file_size} bytes")
 		else:
-			print(f"DEBUG: ERROR - File was not created!")
 		
 		# Debug: Count all JSON files in directory
 		import glob
@@ -1070,25 +1047,14 @@ def save_orders_with_confirmation(orders, date_str, day_num):
 		order_files = glob.glob("orders_*.json")
 		state_files = glob.glob("selection_state.json")
 		
-		print(f"DEBUG: JSON file count summary:")
-		print(f"DEBUG: - Total JSON files: {len(all_json_files)}")
-		print(f"DEBUG: - Consolidated files (all_orders_*.json): {len(consolidated_files)}")
-		print(f"DEBUG: - Confirmed files (confirmed_orders_*.json): {len(confirmed_files)}")
-		print(f"DEBUG: - Order files (orders_*.json): {len(order_files)}")
-		print(f"DEBUG: - State files (selection_state.json): {len(state_files)}")
 		
 		# Show ALL JSON files for debugging
-		print(f"DEBUG: - ALL JSON files in directory: {all_json_files}")
 		
 		if consolidated_files:
-			print(f"DEBUG: - Consolidated files: {consolidated_files}")
 		if confirmed_files:
-			print(f"DEBUG: - Confirmed files: {confirmed_files}")
 		if order_files:
-			print(f"DEBUG: - Order files: {order_files}")
 		
 	except Exception as e:
-		print(f"DEBUG: Exception in save_orders_with_confirmation: {e}")
 		print(f"Error saving consolidated orders: {e}")
 
 
@@ -1149,62 +1115,47 @@ def load_selection_state_global():
 def confirm_date_and_day_global(order_date, order_day):
 	"""Confirm and lock in the selected date and day with persistent storage (global function)"""
 	
-	print(f"DEBUG: confirm_date_and_day_global called with date='{order_date}', day='{order_day}' (type: {type(order_day)})")
 	
 	if not order_date or not order_date.strip():
-		print("DEBUG: No date provided")
 		return "Please enter a date first", "Please select date and day, then confirm"
 	
 	# Handle the case where order_day might be 'None' string or None
 	if not order_day or order_day == 'None' or order_day == 'null':
-		print("DEBUG: No day provided or day is None/null")
 		return "Please select a day first", "Please select date and day, then confirm"
 	
 	# Validate date format
 	try:
 		datetime.strptime(order_date.strip(), "%m/%d/%Y")
-		print(f"DEBUG: Date format validation passed for '{order_date.strip()}'")
 	except ValueError:
-		print(f"DEBUG: Date format validation failed for '{order_date.strip()}'")
 		return "Invalid date format. Use MM/DD/YYYY", "Please select date and day, then confirm"
 	
 	# Validate day
 	try:
 		day_num = int(order_day)
 		if day_num not in [1, 2, 4, 5, 6]:
-			print(f"DEBUG: Invalid day number: {day_num}")
 			return "Invalid day. Select 1, 2, 4, 5, or 6", "Please select date and day, then confirm"
-		print(f"DEBUG: Day validation passed for '{order_day}'")
 	except ValueError:
-		print(f"DEBUG: Day conversion failed for '{order_day}'")
 		return "Invalid day selection", "Please select date and day, then confirm"
 	
 	# Save to persistent state file
-	print(f"DEBUG: Attempting to save state for date='{order_date.strip()}', day='{order_day}'")
 	if save_selection_state_global(order_date, order_day):
 		status_msg = f"CONFIRMED: {order_date.strip()} Day {order_day}\nSaved to persistent state\nReady to generate orders!"
-		print(f"DEBUG: State saved successfully")
 		return f"Date and day confirmed: {order_date.strip()} Day {order_day}", status_msg
 	else:
-		print(f"DEBUG: Failed to save state")
 		return "Error saving selection state", "Please try again"
 
 
 def create_orders_with_confirmed_data_global():
 	"""Create orders using the confirmed date and day from persistent state (global function)"""
 	
-	print("DEBUG: create_orders_with_confirmed_data_global called")
 	
 	# Load confirmed data from file
 	confirmed_date, confirmed_day, is_confirmed = load_selection_state_global()
-	print(f"DEBUG: Loaded confirmed data - date: '{confirmed_date}', day: '{confirmed_day}', confirmed: {is_confirmed}")
 	
 	if not is_confirmed or not confirmed_date:
-		print("DEBUG: No confirmed data found")
 		return "Please confirm date and day selection first"
 	
 	# Automatically use all 235 products for comprehensive order generation
-	print("DEBUG: Calling create_orders_for_date_and_day with confirmed data")
 	return create_orders_for_date_and_day(confirmed_date, confirmed_day, 235)
 
 
@@ -1465,16 +1416,14 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 		
 		# Debug function to check dropdown value
 		def debug_dropdown_value(day_value):
-			print(f"DEBUG: Dropdown value changed to: '{day_value}' (type: {type(day_value)})")
 			# Don't return anything - this is just for debugging
+			pass
 		
 		# Function to initialize dropdown with saved day value
 		def initialize_dropdown_with_saved_day():
 			if initial_day and initial_day in ["1", "2", "4", "5", "6"]:
-				print(f"DEBUG: Initializing dropdown with saved day: {initial_day}")
 				return initial_day
 			else:
-				print("DEBUG: Using default day value: 1")
 				return "1"
 		
 		
