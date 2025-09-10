@@ -751,9 +751,12 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 					interactive=True,
 					value="1"
 				)
+				confirm_date_day_btn = gr.Button("✅ Confirm Date & Day Selection", variant="primary")
+				date_day_status = gr.Textbox(label="Selection Status", value="Please select date and day, then confirm", interactive=False)
+				
 				gr.Markdown("**Step 2:** Configure order parameters")
 				max_products = gr.Slider(1, 235, value=235, step=1, label="Max products per order")
-				simulate_btn = gr.Button("Generate Orders for Selected Date & Day", variant="primary")
+				simulate_btn = gr.Button("Generate Orders for Confirmed Date & Day", variant="primary")
 				sim_msg = gr.Textbox(label="Order Creation Status", interactive=False)
 			
 			with gr.Column(scale=1):
@@ -771,7 +774,52 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 			nc_date = get_north_carolina_date_for_orders()
 			return nc_date
 		
-		simulate_btn.click(create_orders_for_date_and_day, inputs=[order_date_input, order_day_dropdown, max_products], outputs=[sim_msg, order_date_dropdown])
+		# Global variables to store confirmed date and day
+		confirmed_date = None
+		confirmed_day = None
+		
+		def confirm_date_and_day(order_date, order_day):
+			"""Confirm and lock in the selected date and day"""
+			global confirmed_date, confirmed_day
+			
+			if not order_date or not order_date.strip():
+				return "❌ Please enter a date first", "Please select date and day, then confirm"
+			
+			if not order_day:
+				return "❌ Please select a day first", "Please select date and day, then confirm"
+			
+			# Validate date format
+			try:
+				datetime.strptime(order_date.strip(), "%m/%d/%Y")
+			except ValueError:
+				return "❌ Invalid date format. Use MM/DD/YYYY", "Please select date and day, then confirm"
+			
+			# Validate day
+			try:
+				day_num = int(order_day)
+				if day_num not in [1, 2, 4, 5, 6]:
+					return "❌ Invalid day. Select 1, 2, 4, 5, or 6", "Please select date and day, then confirm"
+			except ValueError:
+				return "❌ Invalid day selection", "Please select date and day, then confirm"
+			
+			# Confirm the selection
+			confirmed_date = order_date.strip()
+			confirmed_day = order_day
+			
+			status_msg = f"✅ CONFIRMED: {confirmed_date} Day {confirmed_day}\nReady to generate orders!"
+			return f"Date and day confirmed: {confirmed_date} Day {confirmed_day}", status_msg
+		
+		def create_orders_with_confirmed_data(max_products):
+			"""Create orders using the confirmed date and day"""
+			global confirmed_date, confirmed_day
+			
+			if not confirmed_date or not confirmed_day:
+				return "❌ Please confirm date and day selection first", []
+			
+			return create_orders_for_date_and_day(confirmed_date, confirmed_day, max_products)
+		
+		confirm_date_day_btn.click(confirm_date_and_day, inputs=[order_date_input, order_day_dropdown], outputs=[sim_msg, date_day_status])
+		simulate_btn.click(create_orders_with_confirmed_data, inputs=[max_products], outputs=[sim_msg, order_date_dropdown])
 		refresh_orders_btn.click(get_dates, inputs=None, outputs=[order_date_dropdown])
 		order_date_dropdown.change(update_order_day_choices, inputs=[order_date_dropdown], outputs=[order_day_dropdown])
 		order_day_dropdown.change(get_order_summary_for_date_day, inputs=[order_date_dropdown, order_day_dropdown], outputs=[order_summary])
