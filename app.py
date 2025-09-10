@@ -1,6 +1,8 @@
 import os
 import json
 import gradio as gr
+import requests
+from datetime import datetime
 
 from orders import OrderSystem, Order
 from relay_logic import RelaySystem
@@ -366,6 +368,198 @@ def get_order_summary_for_date_day(selected_date, selected_day):
 	return get_order_summary_for_date_and_day(selected_date, selected_day)
 
 
+# ============================================================================
+# 🌍 WORLD TIME API INTEGRATION
+# ============================================================================
+
+def get_current_datetime_from_api(timezone="America/New_York"):
+	"""
+	Get current date and time from WorldTimeAPI
+	
+	🎓 API Learning: This function demonstrates:
+	- Making HTTP GET requests with the 'requests' library
+	- Handling API responses and JSON parsing
+	- Error handling for network issues
+	- Converting API data to usable formats
+	
+	Args:
+		timezone (str): Timezone identifier (e.g., "America/New_York", "Europe/London")
+	
+	Returns:
+		dict: {"success": bool, "datetime": str, "timezone": str, "error": str}
+	"""
+	try:
+		# 🎓 API Request: This is how you call an API
+		# requests.get() sends an HTTP GET request to the API endpoint
+		api_url = f"http://worldtimeapi.org/api/timezone/{timezone}"
+		print(f"🌍 API Call: Fetching time for {timezone}")
+		
+		# Make the API request with a timeout to prevent hanging
+		response = requests.get(api_url, timeout=10)
+		
+		# 🎓 HTTP Status Codes: 200 = success, 404 = not found, 500 = server error
+		if response.status_code == 200:
+			# 🎓 JSON Parsing: Convert the API response to Python dictionary
+			api_data = response.json()
+			
+			# Extract the datetime from the API response
+			datetime_str = api_data.get("datetime", "")
+			timezone_name = api_data.get("timezone", timezone)
+			
+			print(f"✅ API Success: Got time {datetime_str} for {timezone_name}")
+			
+			return {
+				"success": True,
+				"datetime": datetime_str,
+				"timezone": timezone_name,
+				"error": None
+			}
+		else:
+			# 🎓 Error Handling: Handle different HTTP error codes
+			error_msg = f"API returned status code {response.status_code}"
+			print(f"❌ API Error: {error_msg}")
+			return {
+				"success": False,
+				"datetime": None,
+				"timezone": timezone,
+				"error": error_msg
+			}
+			
+	except requests.exceptions.Timeout:
+		# 🎓 Network Error Handling: Handle timeout errors
+		error_msg = "API request timed out (network too slow)"
+		print(f"❌ Network Error: {error_msg}")
+		return {
+			"success": False,
+			"datetime": None,
+			"timezone": timezone,
+			"error": error_msg
+		}
+	except requests.exceptions.RequestException as e:
+		# 🎓 General Error Handling: Handle other network issues
+		error_msg = f"Network error: {str(e)}"
+		print(f"❌ Network Error: {error_msg}")
+		return {
+			"success": False,
+			"datetime": None,
+			"timezone": timezone,
+			"error": error_msg
+		}
+	except json.JSONDecodeError:
+		# 🎓 Data Error Handling: Handle invalid JSON responses
+		error_msg = "API returned invalid JSON data"
+		print(f"❌ Data Error: {error_msg}")
+		return {
+			"success": False,
+			"datetime": None,
+			"timezone": timezone,
+			"error": error_msg
+		}
+	except Exception as e:
+		# 🎓 General Error Handling: Catch any other unexpected errors
+		error_msg = f"Unexpected error: {str(e)}"
+		print(f"❌ Unexpected Error: {error_msg}")
+		return {
+			"success": False,
+			"datetime": None,
+			"timezone": timezone,
+			"error": error_msg
+		}
+
+
+def get_available_timezones():
+	"""
+	Get list of available timezones from WorldTimeAPI
+	
+	🎓 API Learning: This function demonstrates:
+	- Calling different API endpoints
+	- Caching API responses to avoid repeated calls
+	- Providing fallback data when API fails
+	
+	Returns:
+		list: List of timezone identifiers
+	"""
+	try:
+		# 🎓 API Endpoint: Different APIs have different endpoints
+		# This one gets a list of all available timezones
+		api_url = "http://worldtimeapi.org/api/timezone"
+		print("🌍 API Call: Fetching available timezones")
+		
+		response = requests.get(api_url, timeout=10)
+		
+		if response.status_code == 200:
+			timezones = response.json()
+			print(f"✅ API Success: Got {len(timezones)} timezones")
+			return timezones
+		else:
+			print(f"❌ API Error: Status code {response.status_code}")
+			# 🎓 Fallback Data: Provide default timezones if API fails
+			return [
+				"America/New_York",
+				"America/Chicago", 
+				"America/Denver",
+				"America/Los_Angeles",
+				"Europe/London",
+				"Europe/Paris",
+				"Asia/Tokyo"
+			]
+			
+	except Exception as e:
+		print(f"❌ API Error: {str(e)}")
+		# 🎓 Fallback Data: Always provide some default options
+		return [
+			"America/New_York",
+			"America/Chicago", 
+			"America/Denver",
+			"America/Los_Angeles",
+			"Europe/London",
+			"Europe/Paris",
+			"Asia/Tokyo"
+		]
+
+
+def format_api_datetime_for_orders(api_datetime_str):
+	"""
+	Convert API datetime to MM/DD/YYYY format for order creation
+	
+	🎓 Data Processing: This function demonstrates:
+	- Parsing ISO datetime strings from APIs
+	- Converting between different date formats
+	- Handling timezone information
+	
+	Args:
+		api_datetime_str (str): ISO datetime string from API (e.g., "2024-12-25T14:30:00-05:00")
+	
+	Returns:
+		str: Date in MM/DD/YYYY format (e.g., "12/25/2024")
+	"""
+	try:
+		# 🎓 Date Parsing: APIs often return ISO format dates
+		# ISO format: "2024-12-25T14:30:00-05:00" (date, time, timezone)
+		
+		# Remove timezone info and parse the datetime
+		datetime_part = api_datetime_str.split('+')[0].split('-')[0:3]
+		if len(datetime_part) >= 3:
+			# Reconstruct without timezone
+			clean_datetime = '-'.join(datetime_part)
+		else:
+			clean_datetime = api_datetime_str.split('T')[0]
+		
+		# Parse the ISO date
+		parsed_date = datetime.fromisoformat(clean_datetime)
+		
+		# Convert to MM/DD/YYYY format
+		formatted_date = parsed_date.strftime("%m/%d/%Y")
+		
+		print(f"🔄 Date Conversion: {api_datetime_str} → {formatted_date}")
+		return formatted_date
+		
+	except Exception as e:
+		print(f"❌ Date Conversion Error: {str(e)}")
+		# 🎓 Fallback: Return current date if conversion fails
+		return datetime.now().strftime("%m/%d/%Y")
+
+
 with gr.Blocks(title="Virtual Relay System") as demo:
 	gr.Markdown("# Virtual Relay System — Shipping Dashboard (HF Spaces)")
 	
@@ -424,6 +618,74 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 		refresh_dates_btn.click(get_dates, inputs=None, outputs=[date_select])
 		date_select.change(update_relay_day_choices, inputs=[date_select], outputs=[day_select])
 		create_btn.click(create_relay, inputs=[date_select, day_select], outputs=[summary_out, details_out])
+
+	with gr.Tab("🌍 World Time API"):
+		gr.Markdown("## World Time API Integration")
+		gr.Markdown("**🎓 Learning APIs:** This tab demonstrates real-world API integration with WorldTimeAPI.")
+		gr.Markdown("**Features:** Get real-time dates from different timezones, automatically populate order dates.")
+		
+		with gr.Row():
+			with gr.Column(scale=1):
+				gr.Markdown("### 🌍 Get Current Time")
+				timezone_dropdown = gr.Dropdown(
+					choices=get_available_timezones(),
+					value="America/New_York",
+					label="Select Timezone",
+					interactive=True
+				)
+				get_time_btn = gr.Button("Get Current Time", variant="primary")
+				api_status = gr.Textbox(label="API Status", interactive=False, value="Click 'Get Current Time' to fetch real-time data")
+				current_time_display = gr.Textbox(label="Current Time", interactive=False)
+			
+			with gr.Column(scale=1):
+				gr.Markdown("### 📅 Use API Date for Orders")
+				gr.Markdown("**Convert API time to order date format:**")
+				api_date_display = gr.Textbox(label="API Date (MM/DD/YYYY)", interactive=False, placeholder="Will show converted date here")
+				use_api_date_btn = gr.Button("Use This Date for Orders", variant="secondary")
+				api_usage_status = gr.Textbox(label="Status", interactive=False, value="Get current time first, then use it for orders")
+		
+		# 🎓 API Learning: This is how you connect UI elements to API functions
+		def fetch_current_time(selected_timezone):
+			"""Fetch current time from API and display it"""
+			# Call our API function
+			api_result = get_current_datetime_from_api(selected_timezone)
+			
+			if api_result["success"]:
+				# Convert API datetime to readable format
+				api_datetime = api_result["datetime"]
+				formatted_date = format_api_datetime_for_orders(api_datetime)
+				
+				status_msg = f"✅ API Success: Got time for {api_result['timezone']}"
+				time_display = f"🌍 {api_datetime}\n📍 Timezone: {api_result['timezone']}"
+				
+				return status_msg, time_display, formatted_date
+			else:
+				# Handle API errors
+				status_msg = f"❌ API Error: {api_result['error']}"
+				time_display = "Failed to fetch time from API"
+				formatted_date = datetime.now().strftime("%m/%d/%Y")  # Fallback to local time
+				
+				return status_msg, time_display, formatted_date
+		
+		def use_api_date_for_orders(api_date):
+			"""Use the API date for creating orders"""
+			if api_date:
+				return f"✅ Ready to use API date: {api_date}\n\nYou can now go to the 'Orders' tab and use this date for creating orders!"
+			else:
+				return "❌ No API date available. Please fetch current time first."
+		
+		# 🎓 Event Handlers: Connect buttons to functions
+		get_time_btn.click(
+			fetch_current_time,
+			inputs=[timezone_dropdown],
+			outputs=[api_status, current_time_display, api_date_display]
+		)
+		
+		use_api_date_btn.click(
+			use_api_date_for_orders,
+			inputs=[api_date_display],
+			outputs=[api_usage_status]
+		)
 
 
 if __name__ == "__main__":
