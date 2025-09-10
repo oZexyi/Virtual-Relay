@@ -1089,7 +1089,6 @@ def save_orders_with_confirmation(orders, date_str, day_num):
 		print(f"Coverage: {len(unique_locations)} locations, {len(unique_routes)} routes")
 		
 		# Debug: Check if file was actually created
-		import os
 		if os.path.exists(filename):
 			file_size = os.path.getsize(filename)
 		
