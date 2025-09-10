@@ -80,13 +80,13 @@ def create_orders_for_date_and_day(order_date: str, order_day: str, max_products
 		# Create orders with the specified date and day
 		orders = order_system.simulate_random_orders(max_products, order_date.strip(), day_num)
 		
-		# Save orders to JSON file for persistence
+		# Save orders to JSON file with confirmed date/day information
 		if orders:
-			save_orders_to_json(orders, order_date.strip(), day_num)
+			save_orders_with_confirmation(orders, order_date.strip(), day_num)
 		
 		dates = sorted(set(o.order_date.split(" ")[0] for o in order_system.get_all_orders()))
 		
-		return f"{msg}\nCreated {len(orders)} orders for {order_date} Day {day_num} with up to {max_products} products per route.\n\nOrders saved to JSON file for relay generation.", dates
+		return f"{msg}\nCreated {len(orders)} orders for {order_date} Day {day_num} with up to {max_products} products per route.\n\nOrders saved to JSON file with confirmed date/day for relay generation.", dates
 	
 	except Exception as e:
 		return f"Error creating orders: {str(e)}", []
@@ -205,45 +205,83 @@ def get_available_days_for_date(selected_date: str):
 
 
 def get_available_orders_for_relay():
-	"""Get available orders from JSON files for relay selection"""
+	"""Get available orders from comprehensive JSON files for relay selection"""
 	try:
-		# Look for order JSON files in the current directory
+		# Look for comprehensive order JSON files in the current directory
 		import os
 		import glob
 		
+		# First try to find confirmed order files
+		confirmed_files = glob.glob("confirmed_orders_*.json")
 		order_files = glob.glob("orders_*.json")
+		
 		formatted_orders = []
 		order_data = {}
 		
-		for file_path in order_files:
+		# Process confirmed order files first (preferred)
+		for file_path in confirmed_files:
 			try:
 				with open(file_path, 'r') as f:
-					file_orders = json.load(f)
-					
-				# Handle both single order and list of orders
-				if isinstance(file_orders, dict):
-					file_orders = [file_orders]
+					file_data = json.load(f)
 				
-				for order in file_orders:
+				# Extract confirmation and orders data
+				confirmation = file_data.get('confirmation', {})
+				orders = file_data.get('orders', [])
+				metadata = file_data.get('metadata', {})
+				
+				for order in orders:
 					order_id = order.get('order_id', 'Unknown')
 					order_date = order.get('order_date', '')
 					location = order.get('location', 'Unknown')
 					
-					# Extract date and day from order_date
-					date_part = order_date.split(" ")[0] if order_date else "Unknown"
-					if "Day" in order_date:
-						day_part = order_date.split("Day ")[1].split(" ")[0]
-					else:
-						day_part = "1"
+					# Use confirmed date/day from metadata
+					confirmed_date = metadata.get('confirmed_date', '')
+					confirmed_day = metadata.get('confirmed_day', '1')
 					
-					# Format for display
-					order_display = f"{order_id} - {date_part} Day {day_part} - {location}"
+					# Format for display with confirmation info
+					order_display = f"{order_id} - {confirmed_date} Day {confirmed_day} - {location} [CONFIRMED]"
 					formatted_orders.append(order_display)
-					order_data[order_display] = order
+					order_data[order_display] = {
+						'order': order,
+						'confirmation': confirmation,
+						'metadata': metadata
+					}
 					
 			except Exception as e:
-				print(f"Error reading order file {file_path}: {e}")
+				print(f"Error reading confirmed order file {file_path}: {e}")
 				continue
+		
+		# Process regular order files if no confirmed files found
+		if not confirmed_files:
+			for file_path in order_files:
+				try:
+					with open(file_path, 'r') as f:
+						file_orders = json.load(f)
+						
+					# Handle both single order and list of orders
+					if isinstance(file_orders, dict):
+						file_orders = [file_orders]
+					
+					for order in file_orders:
+						order_id = order.get('order_id', 'Unknown')
+						order_date = order.get('order_date', '')
+						location = order.get('location', 'Unknown')
+						
+						# Extract date and day from order_date
+						date_part = order_date.split(" ")[0] if order_date else "Unknown"
+						if "Day" in order_date:
+							day_part = order_date.split("Day ")[1].split(" ")[0]
+						else:
+							day_part = "1"
+						
+						# Format for display
+						order_display = f"{order_id} - {date_part} Day {day_part} - {location}"
+						formatted_orders.append(order_display)
+						order_data[order_display] = {'order': order}
+						
+				except Exception as e:
+					print(f"Error reading order file {file_path}: {e}")
+					continue
 		
 		return sorted(formatted_orders), order_data
 	except Exception as e:
@@ -609,6 +647,93 @@ def save_orders_to_json(orders, date_str, day_num):
 		print(f"Error saving orders to JSON: {e}")
 
 
+def save_orders_with_confirmation(orders, date_str, day_num):
+	"""
+	Save orders to JSON file with confirmed date/day information for relay generation
+	
+	This function creates a comprehensive JSON file that includes:
+	- All order data
+	- Confirmed date and day information
+	- Metadata for relay generation
+	
+	Args:
+		orders: List of Order objects
+		date_str: Date string (MM/DD/YYYY)
+		day_num: Day number
+	"""
+	try:
+		# Convert date to filename format (MM-DD-YYYY)
+		filename_date = date_str.replace("/", "-")
+		filename = f"confirmed_orders_{filename_date}_Day{day_num}.json"
+		
+		# Load current confirmation state
+		confirmation_data = load_confirmation_state()
+		
+		# Convert orders to JSON-serializable format
+		orders_data = []
+		for order in orders:
+			order_dict = {
+				"order_id": order.order_id,
+				"route_id": order.route_id,
+				"location": order.location,
+				"order_date": order.order_date,
+				"total_trays": order.total_trays,
+				"total_stacks": order.total_stacks,
+				"items": []
+			}
+			
+			# Add order items
+			for item in order.items:
+				item_dict = {
+					"product_number": item.product_number,
+					"product_name": item.product_name,
+					"units_ordered": item.units_ordered,
+					"units_per_tray": item.units_per_tray,
+					"trays_needed": item.trays_needed,
+					"stack_height": item.stack_height,
+					"stacks_needed": item.stacks_needed,
+					"tray_type": item.tray_type
+				}
+				order_dict["items"].append(item_dict)
+			
+			orders_data.append(order_dict)
+		
+		# Create comprehensive data structure
+		comprehensive_data = {
+			"confirmation": confirmation_data,
+			"orders": orders_data,
+			"metadata": {
+				"total_orders": len(orders),
+				"confirmed_date": date_str,
+				"confirmed_day": day_num,
+				"generation_timestamp": datetime.now().isoformat(),
+				"ready_for_relay": True
+			}
+		}
+		
+		# Save to JSON file
+		with open(filename, 'w') as f:
+			json.dump(comprehensive_data, f, indent=2)
+		
+		print(f"Saved {len(orders)} orders with confirmation data to {filename}")
+		
+	except Exception as e:
+		print(f"Error saving orders with confirmation: {e}")
+
+
+def load_confirmation_state():
+	"""Load the current confirmation state from selection_state.json"""
+	try:
+		with open("selection_state.json", "r") as f:
+			state_data = json.load(f)
+		return state_data
+	except FileNotFoundError:
+		return {"confirmed": False, "status": "not_confirmed"}
+	except Exception as e:
+		print(f"Error loading confirmation state: {e}")
+		return {"confirmed": False, "status": "error"}
+
+
 def get_north_carolina_datetime_for_audit():
 	"""
 	Get current North Carolina date and time for audit trail purposes
@@ -783,7 +908,8 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 					"selected_date": order_date.strip() if order_date else "",
 					"selected_day": order_day,
 					"timestamp": datetime.now().isoformat(),
-					"confirmed": True
+					"confirmed": True,
+					"status": "confirmed"
 				}
 				
 				with open("selection_state.json", "w") as f:
@@ -921,7 +1047,7 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 			return gr.Dropdown(choices=orders)
 
 		def create_relay_from_orders(selected_orders):
-			"""Create relay from selected orders loaded from JSON files"""
+			"""Create relay from selected orders loaded from comprehensive JSON files"""
 			if not selected_orders:
 				return "Please select at least one order first.", ""
 			
@@ -932,32 +1058,53 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 				# Get the actual order data from JSON files
 				_, order_data = get_available_orders_for_relay()
 				selected_order_data = []
+				confirmation_info = None
 				
 				for selected_order_display in selected_orders:
 					if selected_order_display in order_data:
-						selected_order_data.append(order_data[selected_order_display])
+						order_info = order_data[selected_order_display]
+						selected_order_data.append(order_info)
+						
+						# Extract confirmation info from the first order
+						if confirmation_info is None and 'confirmation' in order_info:
+							confirmation_info = order_info['confirmation']
 				
 				if not selected_order_data:
 					return "No valid orders found for selection.", ""
 				
 				# Create relay from the selected orders
-				# Use the first order's date and day for relay creation
-				first_order = selected_order_data[0]
-				date_part = first_order['order_date'].split(" ")[0]
-				day_part = first_order['order_date'].split("Day ")[1].split(" ")[0] if "Day" in first_order['order_date'] else "1"
+				# Use confirmed date/day if available, otherwise extract from order
+				first_order_info = selected_order_data[0]
+				first_order = first_order_info['order']
+				
+				if 'metadata' in first_order_info:
+					# Use confirmed date/day from metadata
+					date_part = first_order_info['metadata']['confirmed_date']
+					day_part = first_order_info['metadata']['confirmed_day']
+				else:
+					# Fallback to extracting from order_date
+					date_part = first_order['order_date'].split(" ")[0]
+					day_part = first_order['order_date'].split("Day ")[1].split(" ")[0] if "Day" in first_order['order_date'] else "1"
 				
 				# Create relay using the existing system
 				summary, details = create_relay(date_part, day_part)
 				
 				# Add information about selected orders
 				order_info = f"\n\nSelected Orders ({len(selected_order_data)}):\n"
-				for order in selected_order_data:
+				for order_info in selected_order_data:
+					order = order_info['order']
 					order_info += f"- {order['order_id']}: {order['location']} ({order['total_trays']} trays, {order['total_stacks']} stacks)\n"
 				
-				# Add JSON file information
-				json_info = f"\nOrders loaded from JSON files for relay generation"
+				# Add confirmation information
+				if confirmation_info and confirmation_info.get('confirmed'):
+					confirmation_msg = f"\nConfirmation Data: {confirmation_info['selected_date']} Day {confirmation_info['selected_day']} (Confirmed at {confirmation_info['timestamp']})"
+				else:
+					confirmation_msg = "\nNote: Using legacy order data (no confirmation available)"
 				
-				return summary + order_info + json_info, details
+				# Add JSON file information
+				json_info = f"\nOrders loaded from comprehensive JSON files with confirmation data for relay generation"
+				
+				return summary + order_info + confirmation_msg + json_info, details
 				
 			except Exception as e:
 				return f"Error creating relay from orders: {str(e)}", ""
