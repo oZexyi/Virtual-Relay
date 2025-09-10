@@ -50,45 +50,65 @@ def ensure_relay_system() -> None:
 def create_orders_for_date_and_day(order_date: str, order_day: str, max_products: int):
 	"""Create orders for a specific date and day"""
 	try:
+		print(f"DEBUG: create_orders_for_date_and_day called with date='{order_date}', day='{order_day}', max_products={max_products}")
+		
 		if not order_date or not order_date.strip():
+			print("DEBUG: No date provided")
 			return "Please enter a date in MM/DD/YYYY format (e.g., 12/25/2024)", []
 		
 		if not order_day:
+			print("DEBUG: No day provided")
 			return "Please select a day from the dropdown (1, 2, 4, 5, or 6)", []
 		
 		# Validate date format
 		try:
 			from datetime import datetime
 			datetime.strptime(order_date.strip(), "%m/%d/%Y")
+			print(f"DEBUG: Date format validation passed for '{order_date.strip()}'")
 		except ValueError:
+			print(f"DEBUG: Date format validation failed for '{order_date.strip()}'")
 			return "Invalid date format. Please use MM/DD/YYYY format (e.g., 12/25/2024)", []
 		
 		# Validate day number (from dropdown, so should be valid)
 		try:
 			day_num = int(order_day)
 			if day_num not in [1, 2, 4, 5, 6]:
+				print(f"DEBUG: Invalid day number: {day_num}")
 				return "Invalid day selected. Please select Day 1, 2, 4, 5, or 6.", []
+			print(f"DEBUG: Day validation passed for '{order_day}'")
 		except ValueError:
+			print(f"DEBUG: Day conversion failed for '{order_day}'")
 			return "Invalid day selected. Please select Day 1, 2, 4, 5, or 6.", []
 		
 		if max_products is None or max_products <= 0:
 			max_products = 235  # Use all 235 products for comprehensive order generation
+			print(f"DEBUG: Set max_products to {max_products} (all products)")
 		
+		print(f"DEBUG: Initializing systems...")
 		msg = ensure_order_system()
 		ensure_relay_system()
+		print(f"DEBUG: Systems initialized: {msg}")
 		
 		# Create orders with the specified date and day
+		print(f"DEBUG: Creating orders with simulate_random_orders...")
 		orders = order_system.simulate_random_orders(max_products, order_date.strip(), day_num)
+		print(f"DEBUG: simulate_random_orders returned {len(orders)} orders")
 		
 		# Save orders to JSON file with confirmed date/day information
 		if orders:
+			print(f"DEBUG: Calling save_orders_with_confirmation with {len(orders)} orders")
 			save_orders_with_confirmation(orders, order_date.strip(), day_num)
+		else:
+			print("DEBUG: No orders to save!")
 		
+		# Get dates from in-memory system (for backward compatibility)
 		dates = sorted(set(o.order_date.split(" ")[0] for o in order_system.get_all_orders()))
+		print(f"DEBUG: Found {len(dates)} dates in in-memory system: {dates}")
 		
 		return f"{msg}\nCreated {len(orders)} orders for {order_date} Day {day_num} with up to {max_products} products per route.\n\nOrders saved to JSON file with confirmed date/day for relay generation.", dates
 	
 	except Exception as e:
+		print(f"DEBUG: Exception in create_orders_for_date_and_day: {e}")
 		return f"Error creating orders: {str(e)}", []
 
 
@@ -133,34 +153,162 @@ def simulate_orders(max_products: int):
 
 
 def get_dates():
-	ensure_order_system()
-	# Extract dates from order_date strings, handling both formats:
-	# "YYYY-MM-DD HH:MM:SS" and "YYYY-MM-DD Day X HH:MM:SS"
-	dates = set()
-	for order in order_system.get_all_orders():
-		date_part = order.order_date.split(" ")[0]  # Get YYYY-MM-DD part
-		dates.add(date_part)
-	return sorted(dates)
+	"""Get dates from JSON files for dropdown updates"""
+	try:
+		import glob
+		
+		# Look for consolidated order files first
+		consolidated_files = glob.glob("all_orders_*.json")
+		confirmed_files = glob.glob("confirmed_orders_*.json")
+		order_files = glob.glob("orders_*.json")
+		
+		dates = set()
+		
+		# Process consolidated order files first (most preferred)
+		for file_path in consolidated_files:
+			try:
+				with open(file_path, 'r') as f:
+					file_data = json.load(f)
+				
+				# Get confirmed date from metadata
+				metadata = file_data.get('metadata', {})
+				confirmed_date = metadata.get('confirmed_date', '')
+				
+				if confirmed_date:
+					dates.add(confirmed_date)
+					
+			except Exception as e:
+				print(f"Error reading consolidated order file {file_path}: {e}")
+				continue
+		
+		# Process confirmed order files second (fallback)
+		for file_path in confirmed_files:
+			try:
+				with open(file_path, 'r') as f:
+					file_data = json.load(f)
+				
+				# Get confirmed date from metadata
+				metadata = file_data.get('metadata', {})
+				confirmed_date = metadata.get('confirmed_date', '')
+				
+				if confirmed_date:
+					dates.add(confirmed_date)
+					
+			except Exception as e:
+				print(f"Error reading confirmed order file {file_path}: {e}")
+				continue
+		
+		# Process regular order files if no consolidated or confirmed files found
+		if not consolidated_files and not confirmed_files:
+			for file_path in order_files:
+				try:
+					with open(file_path, 'r') as f:
+						file_orders = json.load(f)
+					
+					# Handle both single order and list of orders
+					if isinstance(file_orders, dict):
+						file_orders = [file_orders]
+					
+					for order in file_orders:
+						order_date = order.get('order_date', '')
+						if order_date:
+							date_part = order_date.split(" ")[0]  # Get YYYY-MM-DD part
+							try:
+								# Convert YYYY-MM-DD to MM/DD/YYYY
+								parsed_date = datetime.strptime(date_part, "%Y-%m-%d")
+								formatted_date = parsed_date.strftime("%m/%d/%Y")
+								dates.add(formatted_date)
+							except ValueError:
+								# If already in MM/DD/YYYY format, use as is
+								dates.add(date_part)
+								
+				except Exception as e:
+					print(f"Error reading order file {file_path}: {e}")
+					continue
+		
+		return sorted(dates)
+	except Exception as e:
+		print(f"Error getting dates: {e}")
+		return []
 
 
 def get_initial_dates():
-	"""Get dates on startup, return empty list if no orders exist yet"""
+	"""Get dates on startup from JSON files, return empty list if no orders exist yet"""
 	try:
-		ensure_order_system()
-		# Extract dates from order_date strings and convert to MM/DD/YYYY format
+		import glob
+		
+		# Look for consolidated order files first
+		consolidated_files = glob.glob("all_orders_*.json")
+		confirmed_files = glob.glob("confirmed_orders_*.json")
+		order_files = glob.glob("orders_*.json")
+		
 		dates = set()
-		for order in order_system.get_all_orders():
-			date_part = order.order_date.split(" ")[0]  # Get YYYY-MM-DD part
+		
+		# Process consolidated order files first (most preferred)
+		for file_path in consolidated_files:
 			try:
-				# Convert YYYY-MM-DD to MM/DD/YYYY
-				parsed_date = datetime.strptime(date_part, "%Y-%m-%d")
-				formatted_date = parsed_date.strftime("%m/%d/%Y")
-				dates.add(formatted_date)
-			except ValueError:
-				# If already in MM/DD/YYYY format, use as is
-				dates.add(date_part)
+				with open(file_path, 'r') as f:
+					file_data = json.load(f)
+				
+				# Get confirmed date from metadata
+				metadata = file_data.get('metadata', {})
+				confirmed_date = metadata.get('confirmed_date', '')
+				
+				if confirmed_date:
+					dates.add(confirmed_date)
+					
+			except Exception as e:
+				print(f"Error reading consolidated order file {file_path}: {e}")
+				continue
+		
+		# Process confirmed order files second (fallback)
+		for file_path in confirmed_files:
+			try:
+				with open(file_path, 'r') as f:
+					file_data = json.load(f)
+				
+				# Get confirmed date from metadata
+				metadata = file_data.get('metadata', {})
+				confirmed_date = metadata.get('confirmed_date', '')
+				
+				if confirmed_date:
+					dates.add(confirmed_date)
+					
+			except Exception as e:
+				print(f"Error reading confirmed order file {file_path}: {e}")
+				continue
+		
+		# Process regular order files if no consolidated or confirmed files found
+		if not consolidated_files and not confirmed_files:
+			for file_path in order_files:
+				try:
+					with open(file_path, 'r') as f:
+						file_orders = json.load(f)
+					
+					# Handle both single order and list of orders
+					if isinstance(file_orders, dict):
+						file_orders = [file_orders]
+					
+					for order in file_orders:
+						order_date = order.get('order_date', '')
+						if order_date:
+							date_part = order_date.split(" ")[0]  # Get YYYY-MM-DD part
+							try:
+								# Convert YYYY-MM-DD to MM/DD/YYYY
+								parsed_date = datetime.strptime(date_part, "%Y-%m-%d")
+								formatted_date = parsed_date.strftime("%m/%d/%Y")
+								dates.add(formatted_date)
+							except ValueError:
+								# If already in MM/DD/YYYY format, use as is
+								dates.add(date_part)
+								
+				except Exception as e:
+					print(f"Error reading order file {file_path}: {e}")
+					continue
+		
 		return sorted(dates)
-	except:
+	except Exception as e:
+		print(f"Error getting initial dates: {e}")
 		return []
 
 
@@ -656,12 +804,17 @@ def save_orders_with_confirmation(orders, date_str, day_num):
 		day_num: Day number
 	"""
 	try:
+		print(f"DEBUG: save_orders_with_confirmation called with {len(orders)} orders")
+		print(f"DEBUG: Date: {date_str}, Day: {day_num}")
+		
 		# Convert date to filename format (MM-DD-YYYY)
 		filename_date = date_str.replace("/", "-")
 		filename = f"all_orders_{filename_date}_Day{day_num}.json"
+		print(f"DEBUG: Target filename: {filename}")
 		
 		# Load current confirmation state
 		confirmation_data = load_confirmation_state()
+		print(f"DEBUG: Loaded confirmation data: {confirmation_data}")
 		
 		# Convert all orders to JSON-serializable format
 		orders_data = []
@@ -671,7 +824,11 @@ def save_orders_with_confirmation(orders, date_str, day_num):
 		unique_locations = set()
 		unique_routes = set()
 		
-		for order in orders:
+		print(f"DEBUG: Processing {len(orders)} orders...")
+		for i, order in enumerate(orders):
+			if i < 3:  # Debug first 3 orders
+				print(f"DEBUG: Order {i+1}: {order.order_id} - {order.location} - {len(order.items)} items")
+			
 			order_dict = {
 				"order_id": order.order_id,
 				"route_id": order.route_id,
@@ -703,6 +860,9 @@ def save_orders_with_confirmation(orders, date_str, day_num):
 			unique_locations.add(order.location)
 			unique_routes.add(order.route_id)
 		
+		print(f"DEBUG: Processed all orders - Total products: {total_products}, Total trays: {total_trays}, Total stacks: {total_stacks}")
+		print(f"DEBUG: Unique locations: {len(unique_locations)}, Unique routes: {len(unique_routes)}")
+		
 		# Create comprehensive data structure
 		comprehensive_data = {
 			"confirmation": confirmation_data,
@@ -722,14 +882,49 @@ def save_orders_with_confirmation(orders, date_str, day_num):
 			}
 		}
 		
+		print(f"DEBUG: About to save JSON file: {filename}")
+		print(f"DEBUG: JSON data structure size - orders: {len(comprehensive_data['orders'])}, metadata keys: {len(comprehensive_data['metadata'])}")
+		
 		# Save to single JSON file
 		with open(filename, 'w') as f:
 			json.dump(comprehensive_data, f, indent=2)
 		
+		print(f"DEBUG: Successfully saved JSON file: {filename}")
 		print(f"Saved {len(orders)} orders with {total_products} total products to single file: {filename}")
 		print(f"Coverage: {len(unique_locations)} locations, {len(unique_routes)} routes")
 		
+		# Debug: Check if file was actually created
+		import os
+		if os.path.exists(filename):
+			file_size = os.path.getsize(filename)
+			print(f"DEBUG: File exists and is {file_size} bytes")
+		else:
+			print(f"DEBUG: ERROR - File was not created!")
+		
+		# Debug: Count all JSON files in directory
+		import glob
+		all_json_files = glob.glob("*.json")
+		consolidated_files = glob.glob("all_orders_*.json")
+		confirmed_files = glob.glob("confirmed_orders_*.json")
+		order_files = glob.glob("orders_*.json")
+		state_files = glob.glob("selection_state.json")
+		
+		print(f"DEBUG: JSON file count summary:")
+		print(f"DEBUG: - Total JSON files: {len(all_json_files)}")
+		print(f"DEBUG: - Consolidated files (all_orders_*.json): {len(consolidated_files)}")
+		print(f"DEBUG: - Confirmed files (confirmed_orders_*.json): {len(confirmed_files)}")
+		print(f"DEBUG: - Order files (orders_*.json): {len(order_files)}")
+		print(f"DEBUG: - State files (selection_state.json): {len(state_files)}")
+		
+		if consolidated_files:
+			print(f"DEBUG: - Consolidated files: {consolidated_files}")
+		if confirmed_files:
+			print(f"DEBUG: - Confirmed files: {confirmed_files}")
+		if order_files:
+			print(f"DEBUG: - Order files: {order_files}")
+		
 	except Exception as e:
+		print(f"DEBUG: Exception in save_orders_with_confirmation: {e}")
 		print(f"Error saving consolidated orders: {e}")
 
 
@@ -834,13 +1029,18 @@ def confirm_date_and_day_global(order_date, order_day):
 def create_orders_with_confirmed_data_global():
 	"""Create orders using the confirmed date and day from persistent state (global function)"""
 	
+	print("DEBUG: create_orders_with_confirmed_data_global called")
+	
 	# Load confirmed data from file
 	confirmed_date, confirmed_day, is_confirmed = load_selection_state_global()
+	print(f"DEBUG: Loaded confirmed data - date: '{confirmed_date}', day: '{confirmed_day}', confirmed: {is_confirmed}")
 	
 	if not is_confirmed or not confirmed_date:
+		print("DEBUG: No confirmed data found")
 		return "Please confirm date and day selection first"
 	
 	# Automatically use all 235 products for comprehensive order generation
+	print("DEBUG: Calling create_orders_for_date_and_day with confirmed data")
 	return create_orders_for_date_and_day(confirmed_date, confirmed_day, 235)
 
 
