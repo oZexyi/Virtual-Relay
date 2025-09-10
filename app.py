@@ -193,7 +193,6 @@ def get_dates():
 				
 				if confirmed_date:
 					dates.add(confirmed_date)
-				else:
 					
 			except Exception as e:
 				print(f"Error reading consolidated order file {file_path}: {e}")
