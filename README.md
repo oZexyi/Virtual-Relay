@@ -279,6 +279,6 @@ The system includes comprehensive error handling for:
 
 ## Author
 Zackary Holston
-Shipping Associate | Software Engineering Student
+| Shipping Associate | Software Engineering Student
 [LinkedIn](https://www.linkedin.com/in/zackary-holston-602404375/)
 
