@@ -1077,6 +1077,9 @@ def save_orders_with_confirmation(orders, date_str, day_num):
 		print(f"DEBUG: - Order files (orders_*.json): {len(order_files)}")
 		print(f"DEBUG: - State files (selection_state.json): {len(state_files)}")
 		
+		# Show ALL JSON files for debugging
+		print(f"DEBUG: - ALL JSON files in directory: {all_json_files}")
+		
 		if consolidated_files:
 			print(f"DEBUG: - Consolidated files: {consolidated_files}")
 		if confirmed_files:
