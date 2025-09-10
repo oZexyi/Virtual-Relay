@@ -778,14 +778,15 @@ def load_selection_state_global():
 def confirm_date_and_day_global(order_date, order_day):
 	"""Confirm and lock in the selected date and day with persistent storage (global function)"""
 	
-	print(f"DEBUG: confirm_date_and_day_global called with date='{order_date}', day='{order_day}'")
+	print(f"DEBUG: confirm_date_and_day_global called with date='{order_date}', day='{order_day}' (type: {type(order_day)})")
 	
 	if not order_date or not order_date.strip():
 		print("DEBUG: No date provided")
 		return "Please enter a date first", "Please select date and day, then confirm"
 	
-	if not order_day:
-		print("DEBUG: No day provided")
+	# Handle the case where order_day might be 'None' string or None
+	if not order_day or order_day == 'None' or order_day == 'null':
+		print("DEBUG: No day provided or day is None/null")
 		return "Please select a day first", "Please select date and day, then confirm"
 	
 	# Validate date format
@@ -1061,7 +1062,8 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 					choices=["1", "2", "4", "5", "6"],
 					label="Select Day",
 					interactive=True,
-					value="1"
+					value="1",
+					allow_custom_value=False
 				)
 				with gr.Row():
 					confirm_date_day_btn = gr.Button("Confirm Date & Day Selection", variant="primary")
@@ -1091,14 +1093,21 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 		# Initialize UI with existing state
 		initial_date, initial_day, initial_status = initialize_order_ui_global()
 		
-		# Set initial values for UI components
-		def initialize_ui_values():
-			return initial_date, initial_day, initial_status
+		# Set initial values for UI components (only if we have valid values)
+		if initial_date:
+			order_date_input.value = initial_date
+		if initial_day and initial_day != "1":  # Only override if we have a different day
+			order_day_dropdown.value = initial_day
+		if initial_status:
+			date_day_status.value = initial_status
 		
-		# Initialize the UI components with loaded state
-		order_date_input.value = initial_date
-		order_day_dropdown.value = initial_day
-		date_day_status.value = initial_status
+		# Debug function to check dropdown value
+		def debug_dropdown_value(day_value):
+			print(f"DEBUG: Dropdown value changed to: '{day_value}' (type: {type(day_value)})")
+			return day_value
+		
+		# Add change event to debug dropdown
+		order_day_dropdown.change(debug_dropdown_value, inputs=[order_day_dropdown], outputs=[])
 		
 		confirm_date_day_btn.click(confirm_date_and_day_global, inputs=[order_date_input, order_day_dropdown], outputs=[sim_msg, date_day_status])
 		clear_selection_btn.click(clear_selection_state_global, inputs=None, outputs=[order_date_input, order_day_dropdown, date_day_status])
