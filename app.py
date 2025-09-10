@@ -197,8 +197,58 @@ def get_available_days_for_date(selected_date: str):
 		return []
 
 
+def get_order_summary_for_date_and_day(selected_date: str, selected_day: str):
+	"""Get detailed summary of orders for a specific date and day"""
+	try:
+		if not selected_date or not selected_day:
+			return "Select both date and day to view orders"
+
+		ensure_order_system()
+		# Filter orders by date and day
+		orders_for_date_day = []
+		for order in order_system.get_all_orders():
+			if order.order_date.startswith(selected_date):
+				# Check if the order matches the selected day
+				if f"Day {selected_day}" in order.order_date:
+					orders_for_date_day.append(order)
+				elif selected_day == "1" and "Day" not in order.order_date:
+					# Legacy orders without day info default to day 1
+					orders_for_date_day.append(order)
+		
+		if not orders_for_date_day:
+			return f"No orders found for {selected_date} Day {selected_day}"
+		
+		# Group orders by location
+		locations = {}
+		for order in orders_for_date_day:
+			location = order.location
+			if location not in locations:
+				locations[location] = []
+			locations[location].append(order)
+		
+		summary_lines = [
+			f"=== ORDERS FOR {selected_date} DAY {selected_day} ===",
+			f"Total Orders: {len(orders_for_date_day)}",
+			f"Total Locations: {len(locations)}",
+			""
+		]
+		
+		for location, orders in sorted(locations.items()):
+			total_trays = sum(order.total_trays for order in orders)
+			total_stacks = sum(order.total_stacks for order in orders)
+			summary_lines.append(f"📍 {location}")
+			summary_lines.append(f"   Orders: {len(orders)}")
+			summary_lines.append(f"   Total Trays: {total_trays}")
+			summary_lines.append(f"   Total Stacks: {total_stacks}")
+			summary_lines.append("")
+		
+		return "\n".join(summary_lines)
+	except Exception as e:
+		return f"Error getting order summary: {str(e)}"
+
+
 def get_order_summary(selected_date: str):
-	"""Get detailed summary of orders for a specific date"""
+	"""Get detailed summary of orders for a specific date (legacy function)"""
 	try:
 		if not selected_date:
 			return "Select a date to view orders"
@@ -291,6 +341,31 @@ def create_relay(selected_date: str, day_number: str | None):
 		return f"Error creating relay: {str(e)}", ""
 
 
+def update_order_day_choices(selected_date):
+	"""Update order day dropdown when date changes"""
+	if selected_date:
+		days = get_available_days_for_date(selected_date)
+		return gr.Dropdown(choices=days, value=days[0] if days else None)
+	else:
+		return gr.Dropdown(choices=[], value=None)
+
+
+def update_relay_day_choices(selected_date):
+	"""Update relay day dropdown when date changes"""
+	if selected_date:
+		days = get_available_days_for_date(selected_date)
+		return gr.Dropdown(choices=days, value=days[0] if days else None)
+	else:
+		return gr.Dropdown(choices=[], value=None)
+
+
+def get_order_summary_for_date_day(selected_date, selected_day):
+	"""Get order summary for specific date and day"""
+	if not selected_date or not selected_day:
+		return "Select both date and day to view orders"
+	return get_order_summary_for_date_and_day(selected_date, selected_day)
+
+
 with gr.Blocks(title="Virtual Relay System") as demo:
 	gr.Markdown("# Virtual Relay System — Shipping Dashboard (HF Spaces)")
 	
@@ -325,13 +400,16 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 			with gr.Column(scale=1):
 				gr.Markdown("### View Existing Orders")
 				gr.Markdown("View orders that have already been created:")
-				date_dropdown_2 = gr.Dropdown(choices=initial_dates, label="Select Date with Orders", interactive=True)
-				order_summary = gr.Textbox(label="Order Summary", lines=8, interactive=False, value="Select a date to view existing orders")
 				refresh_orders_btn = gr.Button("Refresh Order List")
+				order_date_dropdown = gr.Dropdown(choices=initial_dates, label="Select Date with Orders", interactive=True)
+				order_day_dropdown = gr.Dropdown(choices=[], label="Select Day with Orders", interactive=True)
+				order_summary = gr.Textbox(label="Order Summary", lines=8, interactive=False, value="Select a date and day to view existing orders")
 		
-		simulate_btn.click(create_orders_for_date_and_day, inputs=[order_date_input, order_day_input, max_products], outputs=[sim_msg, date_dropdown_2])
-		date_dropdown_2.change(lambda date: get_order_summary(date) if date else "Select a date to view orders", inputs=[date_dropdown_2], outputs=[order_summary])
-		refresh_orders_btn.click(lambda: (get_dates(), "Select a date to view orders"), outputs=[date_dropdown_2, order_summary])
+		
+		simulate_btn.click(create_orders_for_date_and_day, inputs=[order_date_input, order_day_input, max_products], outputs=[sim_msg, order_date_dropdown])
+		refresh_orders_btn.click(get_dates, inputs=None, outputs=[order_date_dropdown])
+		order_date_dropdown.change(update_order_day_choices, inputs=[order_date_dropdown], outputs=[order_day_dropdown])
+		order_day_dropdown.change(get_order_summary_for_date_day, inputs=[order_date_dropdown, order_day_dropdown], outputs=[order_summary])
 
 	with gr.Tab("Relay"):
 		gr.Markdown("## Relay Generation")
@@ -343,16 +421,8 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 		summary_out = gr.Textbox(label="Relay Summary", lines=12, value="Create orders first, then select a date and day with orders to generate relay")
 		details_out = gr.Textbox(label="Trailer & Order Details", lines=16)
 
-		def update_day_choices(selected_date):
-			"""Update day dropdown when date changes"""
-			if selected_date:
-				days = get_available_days_for_date(selected_date)
-				return gr.Dropdown(choices=days, value=days[0] if days else None)
-			else:
-				return gr.Dropdown(choices=[], value=None)
-
 		refresh_dates_btn.click(get_dates, inputs=None, outputs=[date_select])
-		date_select.change(update_day_choices, inputs=[date_select], outputs=[day_select])
+		date_select.change(update_relay_day_choices, inputs=[date_select], outputs=[day_select])
 		create_btn.click(create_relay, inputs=[date_select, day_select], outputs=[summary_out, details_out])
 
 
