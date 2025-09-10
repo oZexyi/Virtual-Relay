@@ -10,6 +10,12 @@ from relay_logic import RelaySystem
 order_system: OrderSystem | None = None
 relay_system: RelaySystem | None = None
 
+# Initialize systems on startup
+def initialize_systems():
+	global order_system, relay_system
+	order_system = OrderSystem()
+	relay_system = RelaySystem()
+	return f"System ready: {len(order_system.products)} products, {len(order_system.routes)} routes."
 
 def ensure_order_system(products_path: str | None = None, routes_path: str | None = None) -> str:
 	global order_system
@@ -35,7 +41,11 @@ def ensure_relay_system() -> None:
 def upload_catalog(products_file, routes_file):
 	"""Accept products.json and routes.json uploads and initialize the catalog."""
 	if not products_file or not routes_file:
-		return gr.update(value="Please upload both products.json and routes.json"), []
+		# Use default files if no uploads provided
+		msg = ensure_order_system()
+		ensure_relay_system()
+		dates = sorted(set(o.order_date.split(" ")[0] for o in order_system.get_all_orders())) if order_system else []
+		return f"{msg} (Using default files)", dates
 
 	# Save to working directory to be file-backed for OrderSystem
 	products_path = os.path.join(os.getcwd(), "products.json")
@@ -50,17 +60,17 @@ def upload_catalog(products_file, routes_file):
 	ensure_relay_system()
 	# Build dates list
 	dates = sorted(set(o.order_date.split(" ")[0] for o in order_system.get_all_orders())) if order_system else []
-	return msg, dates
+	return f"{msg} (Using uploaded files)", dates
 
 
 def simulate_orders(max_products: int):
 	if max_products is None or max_products <= 0:
-		max_products = 3
+		max_products = len(order_system.products) if order_system else 100  # Use all products
 	msg = ensure_order_system()
 	ensure_relay_system()
 	orders = order_system.simulate_random_orders(max_products)
 	dates = sorted(set(o.order_date.split(" ")[0] for o in orders))
-	return f"{msg}\nCreated {len(orders)} demo orders.", dates
+	return f"{msg}\nCreated {len(orders)} demo orders with up to {max_products} products per route.", dates
 
 
 def upload_orders(orders_json_file):
@@ -122,18 +132,24 @@ def create_relay(selected_date: str, day_number: str | None):
 
 with gr.Blocks(title="Virtual Relay System") as demo:
 	gr.Markdown("# Virtual Relay System — Shipping Dashboard (HF Spaces)")
+	
+	# Initialize systems on startup
+	initial_status = initialize_systems()
+	
 	with gr.Tab("Catalog"):
-		gr.Markdown("Upload products.json and routes.json, or use defaults if present.")
-		products_file = gr.File(label="products.json", file_types=[".json"])
-		routes_file = gr.File(label="routes.json", file_types=[".json"])
-		catalog_msg = gr.Textbox(label="Status", interactive=False)
+		gr.Markdown("System is ready with default products and routes. Upload custom files if needed.")
+		catalog_msg = gr.Textbox(label="Status", value=initial_status, interactive=False)
 		date_dropdown_1 = gr.Dropdown(choices=[], label="Available Dates", interactive=False)
-		load_btn = gr.Button("Load Catalog")
+		
+		# Optional file uploads
+		products_file = gr.File(label="Upload custom products.json (optional)", file_types=[".json"])
+		routes_file = gr.File(label="Upload custom routes.json (optional)", file_types=[".json"])
+		load_btn = gr.Button("Load Custom Catalog")
 		load_btn.click(upload_catalog, inputs=[products_file, routes_file], outputs=[catalog_msg, date_dropdown_1])
 
 	with gr.Tab("Orders"):
-		gr.Markdown("Simulate demo orders or upload an exported orders_*.json file.")
-		max_products = gr.Slider(1, 10, value=3, step=1, label="Max products per order (demo)")
+		gr.Markdown("Simulate demo orders for all routes and locations, or upload an exported orders_*.json file.")
+		max_products = gr.Slider(1, 100, value=50, step=1, label="Max products per order (demo)")
 		simulate_btn = gr.Button("Simulate Orders for All Routes")
 		sim_msg = gr.Textbox(label="Status", interactive=False)
 		date_dropdown_2 = gr.Dropdown(choices=[], label="Available Dates", interactive=True)

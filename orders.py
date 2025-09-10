@@ -112,7 +112,7 @@ class OrderSystem:
         # All products are available for every route
         return list(self.products.values())
     
-    def simulate_random_orders(self, max_products_per_order: int = 3) -> List[Order]:
+    def simulate_random_orders(self, max_products_per_order: int = 50) -> List[Order]:
         """Simulate random orders for every single route available"""
         simulated_orders = []
         routes = list(self.routes.values())
@@ -122,14 +122,14 @@ class OrderSystem:
         
         for route in routes:
             # Select random products (1 to max_products_per_order)
-            num_products = random.randint(1, max_products_per_order)
-            selected_products = random.sample(products, min(num_products, len(products)))
+            num_products = random.randint(1, min(max_products_per_order, len(products)))
+            selected_products = random.sample(products, num_products)
             
             order_items = []
             for product in selected_products:
                 # Generate random units that are multiples of units_per_tray
                 min_trays = 1
-                max_trays = 10  # Reasonable demo range
+                max_trays = 25  # Increased demo range for more comprehensive testing
                 num_trays = random.randint(min_trays, max_trays)
                 units_ordered = num_trays * product.units_per_tray
                 
