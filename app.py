@@ -86,7 +86,7 @@ def create_orders_for_date_and_day(order_date: str, order_day: str, max_products
 		
 		dates = sorted(set(o.order_date.split(" ")[0] for o in order_system.get_all_orders()))
 		
-		return f"{msg}\nCreated {len(orders)} orders for {order_date} Day {day_num} with up to {max_products} products per route.\n\n💾 Orders saved to JSON file for relay generation.", dates
+		return f"{msg}\nCreated {len(orders)} orders for {order_date} Day {day_num} with up to {max_products} products per route.\n\nOrders saved to JSON file for relay generation.", dates
 	
 	except Exception as e:
 		return f"Error creating orders: {str(e)}", []
@@ -467,7 +467,7 @@ def get_north_carolina_datetime():
 		else:
 			# 🎓 Error Handling: Handle different HTTP error codes
 			error_msg = f"API returned status code {response.status_code}"
-			print(f"❌ API Error: {error_msg}")
+			print(f"API Error: {error_msg}")
 			return {
 				"success": False,
 				"datetime": None,
@@ -478,7 +478,7 @@ def get_north_carolina_datetime():
 	except requests.exceptions.Timeout:
 		# 🎓 Network Error Handling: Handle timeout errors
 		error_msg = "API request timed out (network too slow)"
-		print(f"❌ Network Error: {error_msg}")
+		print(f"Network Error: {error_msg}")
 		return {
 			"success": False,
 			"datetime": None,
@@ -488,7 +488,7 @@ def get_north_carolina_datetime():
 	except requests.exceptions.RequestException as e:
 		# 🎓 General Error Handling: Handle other network issues
 		error_msg = f"Network error: {str(e)}"
-		print(f"❌ Network Error: {error_msg}")
+		print(f"Network Error: {error_msg}")
 		return {
 			"success": False,
 			"datetime": None,
@@ -498,7 +498,7 @@ def get_north_carolina_datetime():
 	except json.JSONDecodeError:
 		# 🎓 Data Error Handling: Handle invalid JSON responses
 		error_msg = "API returned invalid JSON data"
-		print(f"❌ Data Error: {error_msg}")
+		print(f"Data Error: {error_msg}")
 		return {
 			"success": False,
 			"datetime": None,
@@ -508,7 +508,7 @@ def get_north_carolina_datetime():
 	except Exception as e:
 		# 🎓 General Error Handling: Catch any other unexpected errors
 		error_msg = f"Unexpected error: {str(e)}"
-		print(f"❌ Unexpected Error: {error_msg}")
+		print(f"Unexpected Error: {error_msg}")
 		return {
 			"success": False,
 			"datetime": None,
@@ -536,18 +536,18 @@ def get_north_carolina_date_for_orders():
 		if api_result["success"]:
 			# Convert API datetime to MM/DD/YYYY format
 			formatted_date = format_api_datetime_for_orders(api_result["datetime"])
-			print(f"✅ Using API date for orders: {formatted_date}")
+			print(f"Using API date for orders: {formatted_date}")
 			return formatted_date
 		else:
 			# 🎓 Fallback: Use local system time if API fails
 			fallback_date = datetime.now().strftime("%m/%d/%Y")
-			print(f"⚠️ API failed, using local time: {fallback_date}")
+			print(f"API failed, using local time: {fallback_date}")
 			return fallback_date
 			
 	except Exception as e:
 		# 🎓 Error Handling: Always provide a fallback
 		fallback_date = datetime.now().strftime("%m/%d/%Y")
-		print(f"❌ Error getting API date, using local time: {fallback_date}")
+		print(f"Error getting API date, using local time: {fallback_date}")
 		return fallback_date
 
 
@@ -603,10 +603,10 @@ def save_orders_to_json(orders, date_str, day_num):
 		with open(filename, 'w') as f:
 			json.dump(orders_data, f, indent=2)
 		
-		print(f"💾 Saved {len(orders)} orders to {filename}")
+		print(f"Saved {len(orders)} orders to {filename}")
 		
 	except Exception as e:
-		print(f"❌ Error saving orders to JSON: {e}")
+		print(f"Error saving orders to JSON: {e}")
 
 
 def get_north_carolina_datetime_for_audit():
@@ -741,9 +741,9 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 			with gr.Column(scale=1):
 				gr.Markdown("### Create Orders")
 				gr.Markdown("**Step 1:** Get today's date and select day")
-				gr.Markdown("🌍 **API Integration:** Get current North Carolina date automatically")
+				gr.Markdown("**API Integration:** Get current North Carolina date automatically")
 				with gr.Row():
-					order_date_input = gr.Textbox(label="Order Date", placeholder="MM/DD/YYYY (e.g., 12/25/2024)", interactive=True)
+					order_date_input = gr.Textbox(label="Order Date", placeholder="MM/DD/YYYY (e.g., 12/25/2024)", interactive=True, value="")
 					get_today_btn = gr.Button("Get Today's Date", variant="secondary", size="sm")
 				order_day_dropdown = gr.Dropdown(
 					choices=["1", "2", "4", "5", "6"],
@@ -751,7 +751,9 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 					interactive=True,
 					value="1"
 				)
-				confirm_date_day_btn = gr.Button("✅ Confirm Date & Day Selection", variant="primary")
+				with gr.Row():
+					confirm_date_day_btn = gr.Button("Confirm Date & Day Selection", variant="primary")
+					clear_selection_btn = gr.Button("Clear Selection", variant="secondary")
 				date_day_status = gr.Textbox(label="Selection Status", value="Please select date and day, then confirm", interactive=False)
 				
 				gr.Markdown("**Step 2:** Configure order parameters")
@@ -774,51 +776,124 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 			nc_date = get_north_carolina_date_for_orders()
 			return nc_date
 		
-		# Global variables to store confirmed date and day
-		confirmed_date = None
-		confirmed_day = None
+		def save_selection_state(order_date, order_day):
+			"""Save date and day selection to a persistent state file"""
+			try:
+				state_data = {
+					"selected_date": order_date.strip() if order_date else "",
+					"selected_day": order_day,
+					"timestamp": datetime.now().isoformat(),
+					"confirmed": True
+				}
+				
+				with open("selection_state.json", "w") as f:
+					json.dump(state_data, f, indent=2)
+				
+				print(f"Saved selection state: {order_date} Day {order_day}")
+				return True
+			except Exception as e:
+				print(f"Error saving selection state: {e}")
+				return False
+		
+		def load_selection_state():
+			"""Load date and day selection from persistent state file"""
+			try:
+				with open("selection_state.json", "r") as f:
+					state_data = json.load(f)
+				
+				date = state_data.get("selected_date", "")
+				day = state_data.get("selected_day", "1")
+				confirmed = state_data.get("confirmed", False)
+				
+				print(f"Loaded selection state: {date} Day {day} (confirmed: {confirmed})")
+				return date, day, confirmed
+			except FileNotFoundError:
+				print("No selection state file found")
+				return "", "1", False
+			except Exception as e:
+				print(f"Error loading selection state: {e}")
+				return "", "1", False
 		
 		def confirm_date_and_day(order_date, order_day):
-			"""Confirm and lock in the selected date and day"""
-			global confirmed_date, confirmed_day
+			"""Confirm and lock in the selected date and day with persistent storage"""
 			
 			if not order_date or not order_date.strip():
-				return "❌ Please enter a date first", "Please select date and day, then confirm"
+				return "Please enter a date first", "Please select date and day, then confirm"
 			
 			if not order_day:
-				return "❌ Please select a day first", "Please select date and day, then confirm"
+				return "Please select a day first", "Please select date and day, then confirm"
 			
 			# Validate date format
 			try:
 				datetime.strptime(order_date.strip(), "%m/%d/%Y")
 			except ValueError:
-				return "❌ Invalid date format. Use MM/DD/YYYY", "Please select date and day, then confirm"
+				return "Invalid date format. Use MM/DD/YYYY", "Please select date and day, then confirm"
 			
 			# Validate day
 			try:
 				day_num = int(order_day)
 				if day_num not in [1, 2, 4, 5, 6]:
-					return "❌ Invalid day. Select 1, 2, 4, 5, or 6", "Please select date and day, then confirm"
+					return "Invalid day. Select 1, 2, 4, 5, or 6", "Please select date and day, then confirm"
 			except ValueError:
-				return "❌ Invalid day selection", "Please select date and day, then confirm"
+				return "Invalid day selection", "Please select date and day, then confirm"
 			
-			# Confirm the selection
-			confirmed_date = order_date.strip()
-			confirmed_day = order_day
-			
-			status_msg = f"✅ CONFIRMED: {confirmed_date} Day {confirmed_day}\nReady to generate orders!"
-			return f"Date and day confirmed: {confirmed_date} Day {confirmed_day}", status_msg
+			# Save to persistent state file
+			if save_selection_state(order_date, order_day):
+				status_msg = f"CONFIRMED: {order_date.strip()} Day {order_day}\nSaved to persistent state\nReady to generate orders!"
+				return f"Date and day confirmed: {order_date.strip()} Day {order_day}", status_msg
+			else:
+				return "Error saving selection state", "Please try again"
 		
 		def create_orders_with_confirmed_data(max_products):
-			"""Create orders using the confirmed date and day"""
-			global confirmed_date, confirmed_day
+			"""Create orders using the confirmed date and day from persistent state"""
 			
-			if not confirmed_date or not confirmed_day:
-				return "❌ Please confirm date and day selection first", []
+			# Load confirmed data from file
+			confirmed_date, confirmed_day, is_confirmed = load_selection_state()
+			
+			if not is_confirmed or not confirmed_date:
+				return "Please confirm date and day selection first", []
 			
 			return create_orders_for_date_and_day(confirmed_date, confirmed_day, max_products)
 		
+		def clear_selection_state():
+			"""Clear the persistent selection state"""
+			try:
+				import os
+				if os.path.exists("selection_state.json"):
+					os.remove("selection_state.json")
+					print("Cleared selection state")
+				
+				return "", "1", "Selection cleared. Please select date and day, then confirm"
+			except Exception as e:
+				print(f"Error clearing selection state: {e}")
+				return "", "1", "Error clearing selection"
+		
+		def initialize_order_ui():
+			"""Initialize the order UI with any existing confirmed state"""
+			try:
+				confirmed_date, confirmed_day, is_confirmed = load_selection_state()
+				
+				if is_confirmed and confirmed_date:
+					status_msg = f"CONFIRMED: {confirmed_date} Day {confirmed_day}\nLoaded from persistent state\nReady to generate orders!"
+					return confirmed_date, confirmed_day, status_msg
+				else:
+					return "", "1", "Please select date and day, then confirm"
+			except Exception as e:
+				return "", "1", "Please select date and day, then confirm"
+		
+		# Initialize UI with existing state
+		initial_date, initial_day, initial_status = initialize_order_ui()
+		
+		# Update UI components with initial values if they exist
+		if initial_date:
+			order_date_input.value = initial_date
+		if initial_day:
+			order_day_dropdown.value = initial_day
+		if initial_status:
+			date_day_status.value = initial_status
+		
 		confirm_date_day_btn.click(confirm_date_and_day, inputs=[order_date_input, order_day_dropdown], outputs=[sim_msg, date_day_status])
+		clear_selection_btn.click(clear_selection_state, inputs=None, outputs=[order_date_input, order_day_dropdown, date_day_status])
 		simulate_btn.click(create_orders_with_confirmed_data, inputs=[max_products], outputs=[sim_msg, order_date_dropdown])
 		refresh_orders_btn.click(get_dates, inputs=None, outputs=[order_date_dropdown])
 		order_date_dropdown.change(update_order_day_choices, inputs=[order_date_dropdown], outputs=[order_day_dropdown])
@@ -828,8 +903,8 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 	with gr.Tab("Relay"):
 		gr.Markdown("## Relay Generation")
 		gr.Markdown("Create relays from orders stored in JSON files. Click on order IDs to load order data and generate relays.")
-		gr.Markdown("🌍 **API Integration:** All dates are synchronized with North Carolina timezone via WorldTimeAPI")
-		gr.Markdown("💾 **Data Persistence:** Orders are stored in JSON files for reliable relay generation")
+		gr.Markdown("**API Integration:** All dates are synchronized with North Carolina timezone via WorldTimeAPI")
+		gr.Markdown("**Data Persistence:** Orders are stored in JSON files for reliable relay generation")
 		
 		# Get initial orders
 		initial_orders, _ = get_available_orders_for_relay()
@@ -875,12 +950,12 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 				summary, details = create_relay(date_part, day_part)
 				
 				# Add information about selected orders
-				order_info = f"\n\n📋 Selected Orders ({len(selected_order_data)}):\n"
+				order_info = f"\n\nSelected Orders ({len(selected_order_data)}):\n"
 				for order in selected_order_data:
 					order_info += f"- {order['order_id']}: {order['location']} ({order['total_trays']} trays, {order['total_stacks']} stacks)\n"
 				
 				# Add JSON file information
-				json_info = f"\n💾 Orders loaded from JSON files for relay generation"
+				json_info = f"\nOrders loaded from JSON files for relay generation"
 				
 				return summary + order_info + json_info, details
 				
