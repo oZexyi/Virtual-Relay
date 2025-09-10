@@ -53,8 +53,8 @@ def create_orders_for_date_and_day(order_date: str, order_day: str, max_products
 		if not order_date or not order_date.strip():
 			return "Please enter a date in MM/DD/YYYY format (e.g., 12/25/2024)", []
 		
-		if not order_day or not order_day.strip():
-			return "Please enter a day number (e.g., 1, 2, 3)", []
+		if not order_day:
+			return "Please select a day from the dropdown (1, 2, 4, 5, or 6)", []
 		
 		# Validate date format
 		try:
@@ -63,13 +63,13 @@ def create_orders_for_date_and_day(order_date: str, order_day: str, max_products
 		except ValueError:
 			return "Invalid date format. Please use MM/DD/YYYY format (e.g., 12/25/2024)", []
 		
-		# Validate day number
+		# Validate day number (from dropdown, so should be valid)
 		try:
-			day_num = int(order_day.strip())
-			if day_num < 1:
-				return "Day number must be 1 or greater", []
+			day_num = int(order_day)
+			if day_num not in [1, 2, 4, 5, 6]:
+				return "Invalid day selected. Please select Day 1, 2, 4, 5, or 6.", []
 		except ValueError:
-			return "Invalid day number. Please enter a valid number (e.g., 1, 2, 3)", []
+			return "Invalid day selected. Please select Day 1, 2, 4, 5, or 6.", []
 		
 		if max_products is None or max_products <= 0:
 			max_products = len(order_system.products) if order_system else 100
@@ -79,9 +79,14 @@ def create_orders_for_date_and_day(order_date: str, order_day: str, max_products
 		
 		# Create orders with the specified date and day
 		orders = order_system.simulate_random_orders(max_products, order_date.strip(), day_num)
+		
+		# Save orders to JSON file for persistence
+		if orders:
+			save_orders_to_json(orders, order_date.strip(), day_num)
+		
 		dates = sorted(set(o.order_date.split(" ")[0] for o in order_system.get_all_orders()))
 		
-		return f"{msg}\nCreated {len(orders)} orders for {order_date} Day {day_num} with up to {max_products} products per route.", dates
+		return f"{msg}\nCreated {len(orders)} orders for {order_date} Day {day_num} with up to {max_products} products per route.\n\n💾 Orders saved to JSON file for relay generation.", dates
 	
 	except Exception as e:
 		return f"Error creating orders: {str(e)}", []
@@ -197,6 +202,53 @@ def get_available_days_for_date(selected_date: str):
 		return sorted(days, key=lambda x: int(x) if x.isdigit() else 0)
 	except Exception as e:
 		return []
+
+
+def get_available_orders_for_relay():
+	"""Get available orders from JSON files for relay selection"""
+	try:
+		# Look for order JSON files in the current directory
+		import os
+		import glob
+		
+		order_files = glob.glob("orders_*.json")
+		formatted_orders = []
+		order_data = {}
+		
+		for file_path in order_files:
+			try:
+				with open(file_path, 'r') as f:
+					file_orders = json.load(f)
+					
+				# Handle both single order and list of orders
+				if isinstance(file_orders, dict):
+					file_orders = [file_orders]
+				
+				for order in file_orders:
+					order_id = order.get('order_id', 'Unknown')
+					order_date = order.get('order_date', '')
+					location = order.get('location', 'Unknown')
+					
+					# Extract date and day from order_date
+					date_part = order_date.split(" ")[0] if order_date else "Unknown"
+					if "Day" in order_date:
+						day_part = order_date.split("Day ")[1].split(" ")[0]
+					else:
+						day_part = "1"
+					
+					# Format for display
+					order_display = f"{order_id} - {date_part} Day {day_part} - {location}"
+					formatted_orders.append(order_display)
+					order_data[order_display] = order
+					
+			except Exception as e:
+				print(f"Error reading order file {file_path}: {e}")
+				continue
+		
+		return sorted(formatted_orders), order_data
+	except Exception as e:
+		print(f"Error getting orders for relay: {e}")
+		return [], {}
 
 
 def get_order_summary_for_date_and_day(selected_date: str, selected_day: str):
@@ -372,27 +424,25 @@ def get_order_summary_for_date_day(selected_date, selected_day):
 # 🌍 WORLD TIME API INTEGRATION
 # ============================================================================
 
-def get_current_datetime_from_api(timezone="America/New_York"):
+def get_north_carolina_datetime():
 	"""
-	Get current date and time from WorldTimeAPI
+	Get current date and time from WorldTimeAPI for North Carolina (Eastern Time)
 	
 	🎓 API Learning: This function demonstrates:
 	- Making HTTP GET requests with the 'requests' library
 	- Handling API responses and JSON parsing
 	- Error handling for network issues
 	- Converting API data to usable formats
-	
-	Args:
-		timezone (str): Timezone identifier (e.g., "America/New_York", "Europe/London")
+	- Using real-time data for business applications
 	
 	Returns:
 		dict: {"success": bool, "datetime": str, "timezone": str, "error": str}
 	"""
 	try:
-		# 🎓 API Request: This is how you call an API
-		# requests.get() sends an HTTP GET request to the API endpoint
-		api_url = f"http://worldtimeapi.org/api/timezone/{timezone}"
-		print(f"🌍 API Call: Fetching time for {timezone}")
+		# 🎓 API Request: North Carolina uses Eastern Time (America/New_York)
+		# This is the same timezone as New York, which covers the entire Eastern US
+		api_url = "http://worldtimeapi.org/api/timezone/America/New_York"
+		print("🌍 API Call: Fetching North Carolina (Eastern Time) from WorldTimeAPI")
 		
 		# Make the API request with a timeout to prevent hanging
 		response = requests.get(api_url, timeout=10)
@@ -404,9 +454,9 @@ def get_current_datetime_from_api(timezone="America/New_York"):
 			
 			# Extract the datetime from the API response
 			datetime_str = api_data.get("datetime", "")
-			timezone_name = api_data.get("timezone", timezone)
+			timezone_name = "North Carolina (Eastern Time)"
 			
-			print(f"✅ API Success: Got time {datetime_str} for {timezone_name}")
+			print(f"✅ API Success: Got North Carolina time {datetime_str}")
 			
 			return {
 				"success": True,
@@ -421,7 +471,7 @@ def get_current_datetime_from_api(timezone="America/New_York"):
 			return {
 				"success": False,
 				"datetime": None,
-				"timezone": timezone,
+				"timezone": "North Carolina (Eastern Time)",
 				"error": error_msg
 			}
 			
@@ -432,7 +482,7 @@ def get_current_datetime_from_api(timezone="America/New_York"):
 		return {
 			"success": False,
 			"datetime": None,
-			"timezone": timezone,
+			"timezone": "North Carolina (Eastern Time)",
 			"error": error_msg
 		}
 	except requests.exceptions.RequestException as e:
@@ -442,7 +492,7 @@ def get_current_datetime_from_api(timezone="America/New_York"):
 		return {
 			"success": False,
 			"datetime": None,
-			"timezone": timezone,
+			"timezone": "North Carolina (Eastern Time)",
 			"error": error_msg
 		}
 	except json.JSONDecodeError:
@@ -452,7 +502,7 @@ def get_current_datetime_from_api(timezone="America/New_York"):
 		return {
 			"success": False,
 			"datetime": None,
-			"timezone": timezone,
+			"timezone": "North Carolina (Eastern Time)",
 			"error": error_msg
 		}
 	except Exception as e:
@@ -462,60 +512,167 @@ def get_current_datetime_from_api(timezone="America/New_York"):
 		return {
 			"success": False,
 			"datetime": None,
-			"timezone": timezone,
+			"timezone": "North Carolina (Eastern Time)",
 			"error": error_msg
 		}
 
 
-def get_available_timezones():
+def get_north_carolina_date_for_orders():
 	"""
-	Get list of available timezones from WorldTimeAPI
+	Get current North Carolina date in MM/DD/YYYY format for order creation
 	
 	🎓 API Learning: This function demonstrates:
-	- Calling different API endpoints
-	- Caching API responses to avoid repeated calls
-	- Providing fallback data when API fails
+	- Integrating API data into business workflows
+	- Providing fallback mechanisms for reliability
+	- Converting API data to application-specific formats
 	
 	Returns:
-		list: List of timezone identifiers
+		str: Current date in MM/DD/YYYY format (e.g., "12/25/2024")
 	"""
 	try:
-		# 🎓 API Endpoint: Different APIs have different endpoints
-		# This one gets a list of all available timezones
-		api_url = "http://worldtimeapi.org/api/timezone"
-		print("🌍 API Call: Fetching available timezones")
+		# Get current time from North Carolina via API
+		api_result = get_north_carolina_datetime()
 		
-		response = requests.get(api_url, timeout=10)
-		
-		if response.status_code == 200:
-			timezones = response.json()
-			print(f"✅ API Success: Got {len(timezones)} timezones")
-			return timezones
+		if api_result["success"]:
+			# Convert API datetime to MM/DD/YYYY format
+			formatted_date = format_api_datetime_for_orders(api_result["datetime"])
+			print(f"✅ Using API date for orders: {formatted_date}")
+			return formatted_date
 		else:
-			print(f"❌ API Error: Status code {response.status_code}")
-			# 🎓 Fallback Data: Provide default timezones if API fails
-			return [
-				"America/New_York",
-				"America/Chicago", 
-				"America/Denver",
-				"America/Los_Angeles",
-				"Europe/London",
-				"Europe/Paris",
-				"Asia/Tokyo"
-			]
+			# 🎓 Fallback: Use local system time if API fails
+			fallback_date = datetime.now().strftime("%m/%d/%Y")
+			print(f"⚠️ API failed, using local time: {fallback_date}")
+			return fallback_date
 			
 	except Exception as e:
-		print(f"❌ API Error: {str(e)}")
-		# 🎓 Fallback Data: Always provide some default options
-		return [
-			"America/New_York",
-			"America/Chicago", 
-			"America/Denver",
-			"America/Los_Angeles",
-			"Europe/London",
-			"Europe/Paris",
-			"Asia/Tokyo"
-		]
+		# 🎓 Error Handling: Always provide a fallback
+		fallback_date = datetime.now().strftime("%m/%d/%Y")
+		print(f"❌ Error getting API date, using local time: {fallback_date}")
+		return fallback_date
+
+
+def save_orders_to_json(orders, date_str, day_num):
+	"""
+	Save orders to JSON file for persistence and relay generation
+	
+	🎓 Data Persistence: This function demonstrates:
+	- File I/O operations for data persistence
+	- JSON serialization for data storage
+	- Separation of concerns between order creation and relay generation
+	
+	Args:
+		orders: List of Order objects
+		date_str: Date string (MM/DD/YYYY)
+		day_num: Day number
+	"""
+	try:
+		# Convert date to filename format (MM-DD-YYYY)
+		filename_date = date_str.replace("/", "-")
+		filename = f"orders_{filename_date}_Day{day_num}.json"
+		
+		# Convert orders to JSON-serializable format
+		orders_data = []
+		for order in orders:
+			order_dict = {
+				"order_id": order.order_id,
+				"route_id": order.route_id,
+				"location": order.location,
+				"order_date": order.order_date,
+				"total_trays": order.total_trays,
+				"total_stacks": order.total_stacks,
+				"items": []
+			}
+			
+			# Add order items
+			for item in order.items:
+				item_dict = {
+					"product_number": item.product_number,
+					"product_name": item.product_name,
+					"units_ordered": item.units_ordered,
+					"units_per_tray": item.units_per_tray,
+					"trays_needed": item.trays_needed,
+					"stack_height": item.stack_height,
+					"stacks_needed": item.stacks_needed,
+					"tray_type": item.tray_type
+				}
+				order_dict["items"].append(item_dict)
+			
+			orders_data.append(order_dict)
+		
+		# Save to JSON file
+		with open(filename, 'w') as f:
+			json.dump(orders_data, f, indent=2)
+		
+		print(f"💾 Saved {len(orders)} orders to {filename}")
+		
+	except Exception as e:
+		print(f"❌ Error saving orders to JSON: {e}")
+
+
+def get_north_carolina_datetime_for_audit():
+	"""
+	Get current North Carolina date and time for audit trail purposes
+	
+	🎓 API Learning: This function demonstrates:
+	- Using API data for business audit requirements
+	- Providing detailed timestamp information
+	- Maintaining data integrity for compliance
+	
+	Returns:
+		dict: {"date": str, "datetime": str, "timezone": str, "api_success": bool}
+	"""
+	try:
+		# Get current time from North Carolina via API
+		api_result = get_north_carolina_datetime()
+		
+		if api_result["success"]:
+			# Convert API datetime to MM/DD/YYYY format for orders
+			formatted_date = format_api_datetime_for_orders(api_result["datetime"])
+			
+			# Extract time for audit purposes
+			api_datetime = api_result["datetime"]
+			time_part = api_datetime.split('T')[1].split('.')[0] if 'T' in api_datetime else "Unknown"
+			
+			print(f"✅ Using API datetime for audit: {formatted_date} at {time_part} NC Time")
+			
+			return {
+				"date": formatted_date,
+				"datetime": api_datetime,
+				"time": time_part,
+				"timezone": "North Carolina (Eastern Time)",
+				"api_success": True
+			}
+		else:
+			# 🎓 Fallback: Use local system time if API fails
+			fallback_datetime = datetime.now()
+			fallback_date = fallback_datetime.strftime("%m/%d/%Y")
+			fallback_time = fallback_datetime.strftime("%H:%M:%S")
+			
+			print(f"⚠️ API failed, using local time for audit: {fallback_date} at {fallback_time}")
+			
+			return {
+				"date": fallback_date,
+				"datetime": fallback_datetime.isoformat(),
+				"time": fallback_time,
+				"timezone": "Local System Time",
+				"api_success": False
+			}
+			
+	except Exception as e:
+		# 🎓 Error Handling: Always provide a fallback
+		fallback_datetime = datetime.now()
+		fallback_date = fallback_datetime.strftime("%m/%d/%Y")
+		fallback_time = fallback_datetime.strftime("%H:%M:%S")
+		
+		print(f"❌ Error getting API datetime, using local time: {fallback_date} at {fallback_time}")
+		
+		return {
+			"date": fallback_date,
+			"datetime": fallback_datetime.isoformat(),
+			"time": fallback_time,
+			"timezone": "Local System Time (Error)",
+			"api_success": False
+		}
 
 
 def format_api_datetime_for_orders(api_datetime_str):
@@ -583,9 +740,17 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 		with gr.Row():
 			with gr.Column(scale=1):
 				gr.Markdown("### Create Orders")
-				gr.Markdown("**Step 1:** Select date and day for your orders")
-				order_date_input = gr.Textbox(label="Order Date", placeholder="MM/DD/YYYY (e.g., 12/25/2024)", interactive=True)
-				order_day_input = gr.Textbox(label="Day Number", placeholder="e.g., 1", interactive=True)
+				gr.Markdown("**Step 1:** Get today's date and select day")
+				gr.Markdown("🌍 **API Integration:** Get current North Carolina date automatically")
+				with gr.Row():
+					order_date_input = gr.Textbox(label="Order Date", placeholder="MM/DD/YYYY (e.g., 12/25/2024)", interactive=True)
+					get_today_btn = gr.Button("Get Today's Date", variant="secondary", size="sm")
+				order_day_dropdown = gr.Dropdown(
+					choices=["1", "2", "4", "5", "6"],
+					label="Select Day",
+					interactive=True,
+					value="1"
+				)
 				gr.Markdown("**Step 2:** Configure order parameters")
 				max_products = gr.Slider(1, 235, value=235, step=1, label="Max products per order")
 				simulate_btn = gr.Button("Generate Orders for Selected Date & Day", variant="primary")
@@ -600,92 +765,83 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 				order_summary = gr.Textbox(label="Order Summary", lines=8, interactive=False, value="Select a date and day to view existing orders")
 		
 		
-		simulate_btn.click(create_orders_for_date_and_day, inputs=[order_date_input, order_day_input, max_products], outputs=[sim_msg, order_date_dropdown])
+		# 🎓 API Integration: Connect the "Get Today's Date" button to our API function
+		def get_todays_date():
+			"""Get current North Carolina date and populate the order date field"""
+			nc_date = get_north_carolina_date_for_orders()
+			return nc_date
+		
+		simulate_btn.click(create_orders_for_date_and_day, inputs=[order_date_input, order_day_dropdown, max_products], outputs=[sim_msg, order_date_dropdown])
 		refresh_orders_btn.click(get_dates, inputs=None, outputs=[order_date_dropdown])
 		order_date_dropdown.change(update_order_day_choices, inputs=[order_date_dropdown], outputs=[order_day_dropdown])
 		order_day_dropdown.change(get_order_summary_for_date_day, inputs=[order_date_dropdown, order_day_dropdown], outputs=[order_summary])
+		get_today_btn.click(get_todays_date, inputs=None, outputs=[order_date_input])
 
 	with gr.Tab("Relay"):
 		gr.Markdown("## Relay Generation")
-		gr.Markdown("Create relays from existing orders. Only dates and days with orders are available for selection.")
-		refresh_dates_btn = gr.Button("Refresh Available Dates & Days")
-		date_select = gr.Dropdown(choices=initial_dates, label="Select Date with Orders", interactive=True)
-		day_select = gr.Dropdown(choices=[], label="Select Day with Orders", interactive=True)
-		create_btn = gr.Button("Create Relay", variant="primary")
-		summary_out = gr.Textbox(label="Relay Summary", lines=12, value="Create orders first, then select a date and day with orders to generate relay")
+		gr.Markdown("Create relays from orders stored in JSON files. Click on order IDs to load order data and generate relays.")
+		gr.Markdown("🌍 **API Integration:** All dates are synchronized with North Carolina timezone via WorldTimeAPI")
+		gr.Markdown("💾 **Data Persistence:** Orders are stored in JSON files for reliable relay generation")
+		
+		# Get initial orders
+		initial_orders, _ = get_available_orders_for_relay()
+		
+		refresh_orders_btn = gr.Button("Refresh Available Orders")
+		order_select = gr.Dropdown(choices=initial_orders, label="Select Orders for Relay", interactive=True, multiselect=True)
+		create_btn = gr.Button("Create Relay from Selected Orders", variant="primary")
+		summary_out = gr.Textbox(label="Relay Summary", lines=12, value="Create orders first, then select orders to generate relay")
 		details_out = gr.Textbox(label="Trailer & Order Details", lines=16)
 
-		refresh_dates_btn.click(get_dates, inputs=None, outputs=[date_select])
-		date_select.change(update_relay_day_choices, inputs=[date_select], outputs=[day_select])
-		create_btn.click(create_relay, inputs=[date_select, day_select], outputs=[summary_out, details_out])
+		def refresh_relay_orders():
+			"""Refresh the relay order dropdown with current order data"""
+			orders, _ = get_available_orders_for_relay()
+			return gr.Dropdown(choices=orders)
 
-	with gr.Tab("🌍 World Time API"):
-		gr.Markdown("## World Time API Integration")
-		gr.Markdown("**🎓 Learning APIs:** This tab demonstrates real-world API integration with WorldTimeAPI.")
-		gr.Markdown("**Features:** Get real-time dates from different timezones, automatically populate order dates.")
-		
-		with gr.Row():
-			with gr.Column(scale=1):
-				gr.Markdown("### 🌍 Get Current Time")
-				timezone_dropdown = gr.Dropdown(
-					choices=get_available_timezones(),
-					value="America/New_York",
-					label="Select Timezone",
-					interactive=True
-				)
-				get_time_btn = gr.Button("Get Current Time", variant="primary")
-				api_status = gr.Textbox(label="API Status", interactive=False, value="Click 'Get Current Time' to fetch real-time data")
-				current_time_display = gr.Textbox(label="Current Time", interactive=False)
+		def create_relay_from_orders(selected_orders):
+			"""Create relay from selected orders loaded from JSON files"""
+			if not selected_orders:
+				return "Please select at least one order first.", ""
 			
-			with gr.Column(scale=1):
-				gr.Markdown("### 📅 Use API Date for Orders")
-				gr.Markdown("**Convert API time to order date format:**")
-				api_date_display = gr.Textbox(label="API Date (MM/DD/YYYY)", interactive=False, placeholder="Will show converted date here")
-				use_api_date_btn = gr.Button("Use This Date for Orders", variant="secondary")
-				api_usage_status = gr.Textbox(label="Status", interactive=False, value="Get current time first, then use it for orders")
-		
-		# 🎓 API Learning: This is how you connect UI elements to API functions
-		def fetch_current_time(selected_timezone):
-			"""Fetch current time from API and display it"""
-			# Call our API function
-			api_result = get_current_datetime_from_api(selected_timezone)
-			
-			if api_result["success"]:
-				# Convert API datetime to readable format
-				api_datetime = api_result["datetime"]
-				formatted_date = format_api_datetime_for_orders(api_datetime)
+			try:
+				ensure_order_system()
+				ensure_relay_system()
 				
-				status_msg = f"✅ API Success: Got time for {api_result['timezone']}"
-				time_display = f"🌍 {api_datetime}\n📍 Timezone: {api_result['timezone']}"
+				# Get the actual order data from JSON files
+				_, order_data = get_available_orders_for_relay()
+				selected_order_data = []
 				
-				return status_msg, time_display, formatted_date
-			else:
-				# Handle API errors
-				status_msg = f"❌ API Error: {api_result['error']}"
-				time_display = "Failed to fetch time from API"
-				formatted_date = datetime.now().strftime("%m/%d/%Y")  # Fallback to local time
+				for selected_order_display in selected_orders:
+					if selected_order_display in order_data:
+						selected_order_data.append(order_data[selected_order_display])
 				
-				return status_msg, time_display, formatted_date
-		
-		def use_api_date_for_orders(api_date):
-			"""Use the API date for creating orders"""
-			if api_date:
-				return f"✅ Ready to use API date: {api_date}\n\nYou can now go to the 'Orders' tab and use this date for creating orders!"
-			else:
-				return "❌ No API date available. Please fetch current time first."
-		
-		# 🎓 Event Handlers: Connect buttons to functions
-		get_time_btn.click(
-			fetch_current_time,
-			inputs=[timezone_dropdown],
-			outputs=[api_status, current_time_display, api_date_display]
-		)
-		
-		use_api_date_btn.click(
-			use_api_date_for_orders,
-			inputs=[api_date_display],
-			outputs=[api_usage_status]
-		)
+				if not selected_order_data:
+					return "No valid orders found for selection.", ""
+				
+				# Create relay from the selected orders
+				# Use the first order's date and day for relay creation
+				first_order = selected_order_data[0]
+				date_part = first_order['order_date'].split(" ")[0]
+				day_part = first_order['order_date'].split("Day ")[1].split(" ")[0] if "Day" in first_order['order_date'] else "1"
+				
+				# Create relay using the existing system
+				summary, details = create_relay(date_part, day_part)
+				
+				# Add information about selected orders
+				order_info = f"\n\n📋 Selected Orders ({len(selected_order_data)}):\n"
+				for order in selected_order_data:
+					order_info += f"- {order['order_id']}: {order['location']} ({order['total_trays']} trays, {order['total_stacks']} stacks)\n"
+				
+				# Add JSON file information
+				json_info = f"\n💾 Orders loaded from JSON files for relay generation"
+				
+				return summary + order_info + json_info, details
+				
+			except Exception as e:
+				return f"Error creating relay from orders: {str(e)}", ""
+
+		refresh_orders_btn.click(refresh_relay_orders, inputs=None, outputs=[order_select])
+		create_btn.click(create_relay_from_orders, inputs=[order_select], outputs=[summary_out, details_out])
+
 
 
 if __name__ == "__main__":
