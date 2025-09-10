@@ -5,7 +5,7 @@ import requests
 from datetime import datetime
 
 from orders import OrderSystem, Order
-from relay_logic import RelaySystem
+from relay_logic import RelaySystem, Location
 
 
 # Global systems (re-initialized as needed)
@@ -602,10 +602,140 @@ def get_order_summary(selected_date: str):
 		return f"Error getting order summary: {str(e)}"
 
 
+def load_orders_from_json_files(selected_date: str, day_number: int = None):
+	"""Load orders from JSON files for a specific date and day"""
+	try:
+		import glob
+		
+		print(f"DEBUG: load_orders_from_json_files called with date='{selected_date}', day={day_number}")
+		
+		# Look for consolidated order files first
+		consolidated_files = glob.glob("all_orders_*.json")
+		confirmed_files = glob.glob("confirmed_orders_*.json")
+		order_files = glob.glob("orders_*.json")
+		
+		print(f"DEBUG: Found files - consolidated: {len(consolidated_files)}, confirmed: {len(confirmed_files)}, orders: {len(order_files)}")
+		
+		# Process consolidated order files first (most preferred)
+		for file_path in consolidated_files:
+			try:
+				print(f"DEBUG: Reading consolidated file: {file_path}")
+				with open(file_path, 'r') as f:
+					file_data = json.load(f)
+				
+				# Get confirmed date from metadata
+				metadata = file_data.get('metadata', {})
+				confirmed_date = metadata.get('confirmed_date', '')
+				confirmed_day = metadata.get('confirmed_day', '1')
+				
+				print(f"DEBUG: File metadata - confirmed_date: '{confirmed_date}', confirmed_day: '{confirmed_day}'")
+				
+				# Check if this file matches our search criteria
+				if confirmed_date == selected_date:
+					if day_number is None or str(day_number) == str(confirmed_day):
+						print(f"DEBUG: Found matching file: {file_path}")
+						orders = file_data.get('orders', [])
+						print(f"DEBUG: Returning {len(orders)} orders from consolidated file")
+						return orders
+					else:
+						print(f"DEBUG: Date matches but day doesn't - file day: {confirmed_day}, search day: {day_number}")
+				else:
+					print(f"DEBUG: Date doesn't match - file date: '{confirmed_date}', search date: '{selected_date}'")
+					
+			except Exception as e:
+				print(f"Error reading consolidated order file {file_path}: {e}")
+				continue
+		
+		# Process confirmed order files second (fallback)
+		for file_path in confirmed_files:
+			try:
+				print(f"DEBUG: Reading confirmed file: {file_path}")
+				with open(file_path, 'r') as f:
+					file_data = json.load(f)
+				
+				# Get confirmed date from metadata
+				metadata = file_data.get('metadata', {})
+				confirmed_date = metadata.get('confirmed_date', '')
+				confirmed_day = metadata.get('confirmed_day', '1')
+				
+				print(f"DEBUG: File metadata - confirmed_date: '{confirmed_date}', confirmed_day: '{confirmed_day}'")
+				
+				# Check if this file matches our search criteria
+				if confirmed_date == selected_date:
+					if day_number is None or str(day_number) == str(confirmed_day):
+						print(f"DEBUG: Found matching file: {file_path}")
+						orders = file_data.get('orders', [])
+						print(f"DEBUG: Returning {len(orders)} orders from confirmed file")
+						return orders
+					else:
+						print(f"DEBUG: Date matches but day doesn't - file day: {confirmed_day}, search day: {day_number}")
+				else:
+					print(f"DEBUG: Date doesn't match - file date: '{confirmed_date}', search date: '{selected_date}'")
+					
+			except Exception as e:
+				print(f"Error reading confirmed order file {file_path}: {e}")
+				continue
+		
+		print(f"DEBUG: No matching orders found in JSON files")
+		return []
+		
+	except Exception as e:
+		print(f"Error loading orders from JSON files: {e}")
+		return []
+
+
+def create_relay_from_orders_data(orders_data):
+	"""Create relay locations from orders data loaded from JSON files"""
+	try:
+		print(f"DEBUG: create_relay_from_orders_data called with {len(orders_data)} orders")
+		
+		# Group orders by location
+		location_orders = {}
+		for order_data in orders_data:
+			location = order_data.get('location', 'Unknown')
+			if location not in location_orders:
+				location_orders[location] = []
+			location_orders[location].append(order_data)
+		
+		print(f"DEBUG: Grouped orders into {len(location_orders)} locations")
+		
+		# Create Location objects from orders
+		locations = []
+		for location_name, location_orders_list in location_orders.items():
+			print(f"DEBUG: Creating location '{location_name}' with {len(location_orders_list)} orders")
+			
+			# Calculate total trays and stacks for this location
+			total_trays = 0
+			total_stacks = 0
+			
+			for order_data in location_orders_list:
+				total_trays += order_data.get('total_trays', 0)
+				total_stacks += order_data.get('total_stacks', 0)
+			
+			# Create location with calculated totals
+			location = Location(location_name, bread_trays=total_trays, bulk_trays=0, cake_pallets=0)
+			location.total_stacks = total_stacks  # Override with calculated stacks
+			
+			# Assign trailers based on stack count
+			location.assign_trailers()
+			
+			locations.append(location)
+			print(f"DEBUG: Created location '{location_name}' with {total_trays} trays, {total_stacks} stacks, {len(location.trailers)} trailers")
+		
+		print(f"DEBUG: Created {len(locations)} locations for relay")
+		return locations
+		
+	except Exception as e:
+		print(f"Error creating relay from orders data: {e}")
+		return []
+
+
 def create_relay(selected_date: str, day_number: str | None):
 	try:
 		if not selected_date:
 			return "Please select a date first.", ""
+		
+		print(f"DEBUG: create_relay called with date='{selected_date}', day='{day_number}'")
 		
 		ensure_order_system()
 		ensure_relay_system()
@@ -617,9 +747,20 @@ def create_relay(selected_date: str, day_number: str | None):
 			except ValueError:
 				day_num_int = None
 
-		locations = relay_system.create_automated_relay(selected_date, day_num_int)
-		if not locations:
+		# Load orders from JSON files instead of in-memory system
+		print(f"DEBUG: Loading orders from JSON files for date '{selected_date}'")
+		orders = load_orders_from_json_files(selected_date, day_num_int)
+		
+		if not orders:
+			print(f"DEBUG: No orders found in JSON files for date '{selected_date}'")
 			return f"No orders found for {selected_date} Day {day_number if day_number else '1'}.", ""
+		
+		print(f"DEBUG: Found {len(orders)} orders in JSON files")
+		
+		# Create relay from loaded orders
+		locations = create_relay_from_orders_data(orders)
+		if not locations:
+			return f"Failed to create relay from orders for {selected_date} Day {day_number if day_number else '1'}.", ""
 
 		# Build summary
 		summary_lines = [
