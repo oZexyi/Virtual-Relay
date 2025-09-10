@@ -112,7 +112,7 @@ class OrderSystem:
         # All products are available for every route
         return list(self.products.values())
     
-    def simulate_random_orders(self, max_products_per_order: int = 50, order_date: str = None) -> List[Order]:
+    def simulate_random_orders(self, max_products_per_order: int = 50, order_date: str = None, day_number: int = None) -> List[Order]:
         """Simulate random orders for every single route available"""
         simulated_orders = []
         routes = list(self.routes.values())
@@ -139,7 +139,7 @@ class OrderSystem:
                 })
             
             # Create the order for this route
-            order = self.create_order(route.route_id, order_items, order_date)
+            order = self.create_order(route.route_id, order_items, order_date, day_number)
             if order:
                 simulated_orders.append(order)
         
@@ -186,18 +186,23 @@ class OrderSystem:
         
         return trays_needed, stacks_needed
     
-    def create_order(self, route_id: int, order_items: List[Dict], order_date: str = None) -> Optional[Order]:
+    def create_order(self, route_id: int, order_items: List[Dict], order_date: str = None, day_number: int = None) -> Optional[Order]:
         """
         Create a new order
         order_items: List of dicts with 'product_number' and 'units_ordered'
         order_date: Optional date string in MM/DD/YYYY format
+        day_number: Optional day number
         """
         if route_id not in self.routes:
             print(f"Route '{route_id}' not found.")
             return None
         
         route = self.routes[route_id]
-        order_id = f"ORD_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        # Create order ID with day number if provided
+        if day_number:
+            order_id = f"ORD_D{day_number}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        else:
+            order_id = f"ORD_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         
         # Validate and process order items
         processed_items = []
@@ -251,11 +256,20 @@ class OrderSystem:
             # Convert MM/DD/YYYY to YYYY-MM-DD format
             try:
                 parsed_date = datetime.strptime(order_date, "%m/%d/%Y")
-                formatted_date = parsed_date.strftime('%Y-%m-%d %H:%M:%S')
+                if day_number:
+                    formatted_date = f"{parsed_date.strftime('%Y-%m-%d')} Day {day_number} {datetime.now().strftime('%H:%M:%S')}"
+                else:
+                    formatted_date = parsed_date.strftime('%Y-%m-%d %H:%M:%S')
             except ValueError:
-                formatted_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                if day_number:
+                    formatted_date = f"{datetime.now().strftime('%Y-%m-%d')} Day {day_number} {datetime.now().strftime('%H:%M:%S')}"
+                else:
+                    formatted_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         else:
-            formatted_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            if day_number:
+                formatted_date = f"{datetime.now().strftime('%Y-%m-%d')} Day {day_number} {datetime.now().strftime('%H:%M:%S')}"
+            else:
+                formatted_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         
         order = Order(
             order_id=order_id,

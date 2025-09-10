@@ -45,8 +45,48 @@ def ensure_relay_system() -> None:
 
 
 
+def create_orders_for_date_and_day(order_date: str, order_day: str, max_products: int):
+	"""Create orders for a specific date and day"""
+	try:
+		if not order_date or not order_date.strip():
+			return "Please enter a date in MM/DD/YYYY format (e.g., 12/25/2024)", []
+		
+		if not order_day or not order_day.strip():
+			return "Please enter a day number (e.g., 1, 2, 3)", []
+		
+		# Validate date format
+		try:
+			from datetime import datetime
+			datetime.strptime(order_date.strip(), "%m/%d/%Y")
+		except ValueError:
+			return "Invalid date format. Please use MM/DD/YYYY format (e.g., 12/25/2024)", []
+		
+		# Validate day number
+		try:
+			day_num = int(order_day.strip())
+			if day_num < 1:
+				return "Day number must be 1 or greater", []
+		except ValueError:
+			return "Invalid day number. Please enter a valid number (e.g., 1, 2, 3)", []
+		
+		if max_products is None or max_products <= 0:
+			max_products = len(order_system.products) if order_system else 100
+		
+		msg = ensure_order_system()
+		ensure_relay_system()
+		
+		# Create orders with the specified date and day
+		orders = order_system.simulate_random_orders(max_products, order_date.strip(), day_num)
+		dates = sorted(set(o.order_date.split(" ")[0] for o in order_system.get_all_orders()))
+		
+		return f"{msg}\nCreated {len(orders)} orders for {order_date} Day {day_num} with up to {max_products} products per route.", dates
+	
+	except Exception as e:
+		return f"Error creating orders: {str(e)}", []
+
+
 def create_orders_for_date(order_date: str, max_products: int):
-	"""Create orders for a specific date"""
+	"""Legacy function - kept for compatibility"""
 	try:
 		if not order_date or not order_date.strip():
 			return "Please enter a date in MM/DD/YYYY format (e.g., 12/25/2024)", []
@@ -87,16 +127,26 @@ def simulate_orders(max_products: int):
 
 def get_dates():
 	ensure_order_system()
-	dates = sorted(set(o.order_date.split(" ")[0] for o in order_system.get_all_orders()))
-	return dates
+	# Extract dates from order_date strings, handling both formats:
+	# "YYYY-MM-DD HH:MM:SS" and "YYYY-MM-DD Day X HH:MM:SS"
+	dates = set()
+	for order in order_system.get_all_orders():
+		date_part = order.order_date.split(" ")[0]  # Get YYYY-MM-DD part
+		dates.add(date_part)
+	return sorted(dates)
 
 
 def get_initial_dates():
 	"""Get dates on startup, return empty list if no orders exist yet"""
 	try:
 		ensure_order_system()
-		dates = sorted(set(o.order_date.split(" ")[0] for o in order_system.get_all_orders()))
-		return dates
+		# Extract dates from order_date strings, handling both formats:
+		# "YYYY-MM-DD HH:MM:SS" and "YYYY-MM-DD Day X HH:MM:SS"
+		dates = set()
+		for order in order_system.get_all_orders():
+			date_part = order.order_date.split(" ")[0]  # Get YYYY-MM-DD part
+			dates.add(date_part)
+		return sorted(dates)
 	except:
 		return []
 
@@ -105,8 +155,10 @@ def get_order_summary(selected_date: str):
 	"""Get detailed summary of orders for a specific date"""
 	if not selected_date:
 		return "Select a date to view orders"
-	
+
 	ensure_order_system()
+	# Filter orders by date, handling both formats:
+	# "YYYY-MM-DD HH:MM:SS" and "YYYY-MM-DD Day X HH:MM:SS"
 	orders_for_date = [o for o in order_system.get_all_orders() if o.order_date.startswith(selected_date)]
 	
 	if not orders_for_date:
@@ -207,11 +259,12 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 		with gr.Row():
 			with gr.Column(scale=1):
 				gr.Markdown("### Create Orders")
-				gr.Markdown("**Step 1:** Select a date for your orders")
+				gr.Markdown("**Step 1:** Select date and day for your orders")
 				order_date_input = gr.Textbox(label="Order Date", placeholder="MM/DD/YYYY (e.g., 12/25/2024)", interactive=True)
+				order_day_input = gr.Textbox(label="Day Number", placeholder="e.g., 1", interactive=True)
 				gr.Markdown("**Step 2:** Configure order parameters")
 				max_products = gr.Slider(1, 235, value=235, step=1, label="Max products per order")
-				simulate_btn = gr.Button("Generate Orders for Selected Date", variant="primary")
+				simulate_btn = gr.Button("Generate Orders for Selected Date & Day", variant="primary")
 				sim_msg = gr.Textbox(label="Order Creation Status", interactive=False)
 			
 			with gr.Column(scale=1):
@@ -221,7 +274,7 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 				order_summary = gr.Textbox(label="Order Summary", lines=8, interactive=False, value="Select a date to view existing orders")
 				refresh_orders_btn = gr.Button("Refresh Order List")
 		
-		simulate_btn.click(create_orders_for_date, inputs=[order_date_input, max_products], outputs=[sim_msg, date_dropdown_2])
+		simulate_btn.click(create_orders_for_date_and_day, inputs=[order_date_input, order_day_input, max_products], outputs=[sim_msg, date_dropdown_2])
 		date_dropdown_2.change(lambda date: get_order_summary(date) if date else "Select a date to view orders", inputs=[date_dropdown_2], outputs=[order_summary])
 		refresh_orders_btn.click(lambda: (get_dates(), "Select a date to view orders"), outputs=[date_dropdown_2, order_summary])
 
