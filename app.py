@@ -657,7 +657,6 @@ def load_orders_from_json_files(selected_date: str, day_number: int = None):
 	try:
 		import glob
 		
-		print(f"DEBUG: load_orders_from_json_files called with date='{selected_date}', day={day_number}")
 		
 		# Look for consolidated order files first
 		consolidated_files = glob.glob("all_orders_*.json")
@@ -676,19 +675,14 @@ def load_orders_from_json_files(selected_date: str, day_number: int = None):
 				confirmed_date = metadata.get('confirmed_date', '')
 				confirmed_day = metadata.get('confirmed_day', '1')
 				
-				print(f"DEBUG: File metadata - confirmed_date: '{confirmed_date}', confirmed_day: '{confirmed_day}'")
 				
 				# Check if this file matches our search criteria
 				if confirmed_date == selected_date:
 					if day_number is None or str(day_number) == str(confirmed_day):
-						print(f"DEBUG: Found matching file: {file_path}")
 						orders = file_data.get('orders', [])
-						print(f"DEBUG: Returning {len(orders)} orders from consolidated file")
 						return orders
 					else:
-						print(f"DEBUG: Date matches but day doesn't - file day: {confirmed_day}, search day: {day_number}")
 				else:
-					print(f"DEBUG: Date doesn't match - file date: '{confirmed_date}', search date: '{selected_date}'")
 					
 			except Exception as e:
 				print(f"Error reading consolidated order file {file_path}: {e}")
@@ -697,7 +691,6 @@ def load_orders_from_json_files(selected_date: str, day_number: int = None):
 		# Process confirmed order files second (fallback)
 		for file_path in confirmed_files:
 			try:
-				print(f"DEBUG: Reading confirmed file: {file_path}")
 				with open(file_path, 'r') as f:
 					file_data = json.load(f)
 				
@@ -706,7 +699,6 @@ def load_orders_from_json_files(selected_date: str, day_number: int = None):
 				confirmed_date = metadata.get('confirmed_date', '')
 				confirmed_day = metadata.get('confirmed_day', '1')
 				
-				print(f"DEBUG: File metadata - confirmed_date: '{confirmed_date}', confirmed_day: '{confirmed_day}'")
 				
 				# Check if this file matches our search criteria
 				if confirmed_date == selected_date:
@@ -716,9 +708,7 @@ def load_orders_from_json_files(selected_date: str, day_number: int = None):
 						print(f"DEBUG: Returning {len(orders)} orders from confirmed file")
 						return orders
 					else:
-						print(f"DEBUG: Date matches but day doesn't - file day: {confirmed_day}, search day: {day_number}")
 				else:
-					print(f"DEBUG: Date doesn't match - file date: '{confirmed_date}', search date: '{selected_date}'")
 					
 			except Exception as e:
 				print(f"Error reading confirmed order file {file_path}: {e}")
@@ -1004,31 +994,23 @@ def save_orders_with_confirmation(orders, date_str, day_num):
 		day_num: Day number
 	"""
 	try:
-		# Clean up any existing files for this date/day combination before saving
-		cleanup_old_order_files()
-		
 		# Convert date to filename format (MM-DD-YYYY)
 		filename_date = date_str.replace("/", "-")
-		filename = f"all_orders_{filename_date}_Day{day_num}.json"
+		filename = f"orders_{filename_date}_Day{day_num}.json"
 		
-		# Check if file already exists - if so, don't create a duplicate
-		if os.path.exists(filename):
-			print(f"File {filename} already exists. Skipping creation to prevent duplicates.")
-			return
+		# Clean up any existing order files
+		import glob
+		all_order_files = glob.glob("orders_*.json")
+		for old_file in all_order_files:
+			try:
+				os.remove(old_file)
+				print(f"Deleted old file: {old_file}")
+			except Exception as e:
+				print(f"Error deleting {old_file}: {e}")
 		
-		# Load current confirmation state
-		confirmation_data = load_confirmation_state()
-		
-		# Convert all orders to JSON-serializable format
+		# Convert orders to simple JSON format
 		orders_data = []
-		total_products = 0
-		total_trays = 0
-		total_stacks = 0
-		unique_locations = set()
-		unique_routes = set()
-		
-		for i, order in enumerate(orders):
-			
+		for order in orders:
 			order_dict = {
 				"order_id": order.order_id,
 				"route_id": order.route_id,
@@ -1052,56 +1034,27 @@ def save_orders_with_confirmation(orders, date_str, day_num):
 					"tray_type": item.tray_type
 				}
 				order_dict["items"].append(item_dict)
-				total_products += 1
 			
 			orders_data.append(order_dict)
-			total_trays += order.total_trays
-			total_stacks += order.total_stacks
-			unique_locations.add(order.location)
-			unique_routes.add(order.route_id)
 		
-		
-		# Create comprehensive data structure
-		comprehensive_data = {
-			"confirmation": confirmation_data,
+		# Create simple data structure
+		file_data = {
 			"orders": orders_data,
 			"metadata": {
 				"total_orders": len(orders),
-				"total_products": total_products,
-				"total_trays": total_trays,
-				"total_stacks": total_stacks,
-				"unique_locations": len(unique_locations),
-				"unique_routes": len(unique_routes),
 				"confirmed_date": date_str,
 				"confirmed_day": day_num,
-				"generation_timestamp": datetime.now().isoformat(),
-				"ready_for_relay": True,
-				"file_type": "consolidated_orders"
+				"generation_timestamp": datetime.now().isoformat()
 			}
 		}
 		
 		
 		# Save to single JSON file
 		with open(filename, 'w') as f:
-			json.dump(comprehensive_data, f, indent=2)
+			json.dump(file_data, f, indent=2)
 		
-		print(f"Saved {len(orders)} orders with {total_products} total products to single file: {filename}")
-		print(f"Coverage: {len(unique_locations)} locations, {len(unique_routes)} routes")
+		print(f"Saved {len(orders)} orders to file: {filename}")
 		
-		# Debug: Check if file was actually created
-		if os.path.exists(filename):
-			file_size = os.path.getsize(filename)
-		
-		# Debug: Count all JSON files in directory
-		import glob
-		all_json_files = glob.glob("*.json")
-		consolidated_files = glob.glob("all_orders_*.json")
-		confirmed_files = glob.glob("confirmed_orders_*.json")
-		order_files = glob.glob("orders_*.json")
-		state_files = glob.glob("selection_state.json")
-		
-		
-		# Show ALL JSON files for debugging
 		
 	except Exception as e:
 		print(f"Error saving consolidated orders: {e}")
