@@ -151,89 +151,144 @@ def get_initial_dates():
 		return []
 
 
+def get_available_dates_and_days():
+	"""Get available dates and days for dropdowns"""
+	try:
+		ensure_order_system()
+		dates = set()
+		date_day_combinations = set()
+		
+		for order in order_system.get_all_orders():
+			date_part = order.order_date.split(" ")[0]  # Get YYYY-MM-DD part
+			dates.add(date_part)
+			
+			# Extract day number if present
+			if "Day" in order.order_date:
+				day_part = order.order_date.split("Day ")[1].split(" ")[0]
+				date_day_combinations.add((date_part, day_part))
+			else:
+				date_day_combinations.add((date_part, "1"))  # Default to day 1
+		
+		return sorted(dates), sorted(date_day_combinations)
+	except Exception as e:
+		return [], []
+
+
+def get_available_days_for_date(selected_date: str):
+	"""Get available days for a specific date"""
+	try:
+		if not selected_date:
+			return []
+		
+		ensure_order_system()
+		days = set()
+		
+		for order in order_system.get_all_orders():
+			if order.order_date.startswith(selected_date):
+				# Extract day number if present
+				if "Day" in order.order_date:
+					day_part = order.order_date.split("Day ")[1].split(" ")[0]
+					days.add(day_part)
+				else:
+					days.add("1")  # Default to day 1
+		
+		return sorted(days, key=lambda x: int(x) if x.isdigit() else 0)
+	except Exception as e:
+		return []
+
+
 def get_order_summary(selected_date: str):
 	"""Get detailed summary of orders for a specific date"""
-	if not selected_date:
-		return "Select a date to view orders"
+	try:
+		if not selected_date:
+			return "Select a date to view orders"
 
-	ensure_order_system()
-	# Filter orders by date, handling both formats:
-	# "YYYY-MM-DD HH:MM:SS" and "YYYY-MM-DD Day X HH:MM:SS"
-	orders_for_date = [o for o in order_system.get_all_orders() if o.order_date.startswith(selected_date)]
-	
-	if not orders_for_date:
-		return f"No orders found for {selected_date}"
-	
-	# Group orders by location
-	locations = {}
-	for order in orders_for_date:
-		location = order.location
-		if location not in locations:
-			locations[location] = []
-		locations[location].append(order)
-	
-	summary_lines = [
-		f"=== ORDERS FOR {selected_date} ===",
-		f"Total Orders: {len(orders_for_date)}",
-		f"Total Locations: {len(locations)}",
-		""
-	]
-	
-	for location, orders in sorted(locations.items()):
-		total_trays = sum(order.total_trays for order in orders)
-		total_stacks = sum(order.total_stacks for order in orders)
-		summary_lines.append(f"📍 {location}")
-		summary_lines.append(f"   Orders: {len(orders)}")
-		summary_lines.append(f"   Total Trays: {total_trays}")
-		summary_lines.append(f"   Total Stacks: {total_stacks}")
-		summary_lines.append("")
-	
-	return "\n".join(summary_lines)
+		ensure_order_system()
+		# Filter orders by date, handling both formats:
+		# "YYYY-MM-DD HH:MM:SS" and "YYYY-MM-DD Day X HH:MM:SS"
+		orders_for_date = [o for o in order_system.get_all_orders() if o.order_date.startswith(selected_date)]
+		
+		if not orders_for_date:
+			return f"No orders found for {selected_date}"
+		
+		# Group orders by location
+		locations = {}
+		for order in orders_for_date:
+			location = order.location
+			if location not in locations:
+				locations[location] = []
+			locations[location].append(order)
+		
+		summary_lines = [
+			f"=== ORDERS FOR {selected_date} ===",
+			f"Total Orders: {len(orders_for_date)}",
+			f"Total Locations: {len(locations)}",
+			""
+		]
+		
+		for location, orders in sorted(locations.items()):
+			total_trays = sum(order.total_trays for order in orders)
+			total_stacks = sum(order.total_stacks for order in orders)
+			summary_lines.append(f"📍 {location}")
+			summary_lines.append(f"   Orders: {len(orders)}")
+			summary_lines.append(f"   Total Trays: {total_trays}")
+			summary_lines.append(f"   Total Stacks: {total_stacks}")
+			summary_lines.append("")
+		
+		return "\n".join(summary_lines)
+	except Exception as e:
+		return f"Error getting order summary: {str(e)}"
 
 
 def create_relay(selected_date: str, day_number: str | None):
-	if not selected_date:
-		return "Please select a date first.", ""
-	ensure_order_system()
-	ensure_relay_system()
-
-	day_num_int = None
 	try:
-		day_num_int = int(day_number) if day_number else None
-	except Exception:
+		if not selected_date:
+			return "Please select a date first.", ""
+		
+		ensure_order_system()
+		ensure_relay_system()
+
 		day_num_int = None
+		if day_number:
+			try:
+				day_num_int = int(day_number)
+			except ValueError:
+				day_num_int = None
 
-	locations = relay_system.create_automated_relay(selected_date, day_num_int)
-	if not locations:
-		return f"No orders found for {selected_date}.", ""
+		locations = relay_system.create_automated_relay(selected_date, day_num_int)
+		if not locations:
+			return f"No orders found for {selected_date} Day {day_number if day_number else '1'}.", ""
 
-	# Build summary
-	summary_lines = [
-		"== AUTOMATED RELAY SUMMARY ==",
-		f"Date: {selected_date}  Day: {day_num_int if day_num_int else '-'}",
-	]
+		# Build summary
+		summary_lines = [
+			"== AUTOMATED RELAY SUMMARY ==",
+			f"Date: {selected_date}  Day: {day_num_int if day_num_int else '-'}",
+		]
 
-	for loc in relay_system.locations:
-		total_trays = getattr(loc, 'total_trays', sum(item.trays_needed for o in loc.orders for item in o.items))
-		summary_lines.append(f"\n{loc.name}: Orders={len(loc.orders)}  Trays={total_trays}  Stacks={loc.total_stacks}  Trailers={len(loc.trailers)}")
+		for loc in relay_system.locations:
+			total_trays = getattr(loc, 'total_trays', sum(item.trays_needed for o in loc.orders for item in o.items))
+			summary_lines.append(f"\n{loc.name}: Orders={len(loc.orders)}  Trays={total_trays}  Stacks={loc.total_stacks}  Trailers={len(loc.trailers)}")
 
-	# Build detailed trailer and order info
-	details_lines = ["== TRAILER ASSIGNMENTS =="]
-	for loc in relay_system.locations:
-		details_lines.append(f"\n📍 {loc.name}")
-		details_lines.append(f"   Total Stacks: {loc.total_stacks} | Total Trailers: {len(loc.trailers)}")
-		
-		# Show each trailer
-		for trailer in loc.trailers:
-			details_lines.append(f"   🚛 Trailer #{trailer.number}: {trailer.stacks} stacks")
-		
-		details_lines.append(f"\n   📋 Orders for {loc.name}:")
-		for o in loc.orders:
-			details_lines.append(f"      Order {o.order_id} (Route {o.route_id}): {o.total_trays} trays, {o.total_stacks} stacks")
-			for it in o.items:
-				details_lines.append(f"        - {it.product_name}: {it.units_ordered} units → {it.trays_needed} trays → {it.stacks_needed} stacks")
+		# Build detailed trailer and order info
+		details_lines = ["== TRAILER ASSIGNMENTS =="]
+		for loc in relay_system.locations:
+			details_lines.append(f"\n📍 {loc.name}")
+			details_lines.append(f"   Total Stacks: {loc.total_stacks} | Total Trailers: {len(loc.trailers)}")
+			
+			# Show each trailer
+			for trailer in loc.trailers:
+				details_lines.append(f"   🚛 Trailer #{trailer.number}: {trailer.stacks} stacks")
+			
+			details_lines.append(f"\n   📋 Orders for {loc.name}:")
+			for o in loc.orders:
+				details_lines.append(f"      Order {o.order_id} (Route {o.route_id}): {o.total_trays} trays, {o.total_stacks} stacks")
+				for it in o.items:
+					details_lines.append(f"        - {it.product_name}: {it.units_ordered} units → {it.trays_needed} trays → {it.stacks_needed} stacks")
 
-	return "\n".join(summary_lines), "\n".join(details_lines)
+		return "\n".join(summary_lines), "\n".join(details_lines)
+	
+	except Exception as e:
+		return f"Error creating relay: {str(e)}", ""
 
 
 with gr.Blocks(title="Virtual Relay System") as demo:
@@ -280,16 +335,25 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 
 	with gr.Tab("Relay"):
 		gr.Markdown("## Relay Generation")
-		gr.Markdown("Create relays from existing orders. Only dates with orders are available for selection.")
-		refresh_dates_btn = gr.Button("Refresh Available Dates")
+		gr.Markdown("Create relays from existing orders. Only dates and days with orders are available for selection.")
+		refresh_dates_btn = gr.Button("Refresh Available Dates & Days")
 		date_select = gr.Dropdown(choices=initial_dates, label="Select Date with Orders", interactive=True)
-		day_input = gr.Textbox(label="Day Number (optional)", placeholder="e.g., 1")
+		day_select = gr.Dropdown(choices=[], label="Select Day with Orders", interactive=True)
 		create_btn = gr.Button("Create Relay", variant="primary")
-		summary_out = gr.Textbox(label="Relay Summary", lines=12, value="Create orders first, then select a date with orders to generate relay")
+		summary_out = gr.Textbox(label="Relay Summary", lines=12, value="Create orders first, then select a date and day with orders to generate relay")
 		details_out = gr.Textbox(label="Trailer & Order Details", lines=16)
 
+		def update_day_choices(selected_date):
+			"""Update day dropdown when date changes"""
+			if selected_date:
+				days = get_available_days_for_date(selected_date)
+				return gr.Dropdown(choices=days, value=days[0] if days else None)
+			else:
+				return gr.Dropdown(choices=[], value=None)
+
 		refresh_dates_btn.click(get_dates, inputs=None, outputs=[date_select])
-		create_btn.click(create_relay, inputs=[date_select, day_input], outputs=[summary_out, details_out])
+		date_select.change(update_day_choices, inputs=[date_select], outputs=[day_select])
+		create_btn.click(create_relay, inputs=[date_select, day_select], outputs=[summary_out, details_out])
 
 
 if __name__ == "__main__":
