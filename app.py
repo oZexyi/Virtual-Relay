@@ -21,13 +21,8 @@ def initialize_systems():
 	except Exception as e:
 		return f"Error initializing system: {str(e)}"
 
-def ensure_order_system(products_path: str | None = None, routes_path: str | None = None) -> str:
+def ensure_order_system() -> str:
 	global order_system
-	# If specific files provided, (re)create using those; else create default
-	if products_path and routes_path:
-		# Create a fresh instance pointing to uploaded files
-		order_system = OrderSystem(products_file=products_path, routes_file=routes_path)
-		return f"Loaded catalog: {len(order_system.products)} products, {len(order_system.routes)} routes."
 	if order_system is None:
 		order_system = OrderSystem()
 	return f"Catalog ready: {len(order_system.products)} products, {len(order_system.routes)} routes."
@@ -42,34 +37,6 @@ def ensure_relay_system() -> None:
 		relay_system.order_system = order_system
 
 
-def upload_catalog(products_file, routes_file):
-	"""Accept products.json and routes.json uploads and initialize the catalog."""
-	if not products_file or not routes_file:
-		# Use default files if no uploads provided - reinitialize with default paths
-		global order_system, relay_system
-		try:
-			order_system = OrderSystem()  # This will use default products.json and routes.json
-			relay_system = RelaySystem()
-			relay_system.order_system = order_system
-			dates = sorted(set(o.order_date.split(" ")[0] for o in order_system.get_all_orders())) if order_system else []
-			return f"System ready: {len(order_system.products)} products, {len(order_system.routes)} routes (Using default files)", dates
-		except Exception as e:
-			return f"Error loading default files: {str(e)}", []
-
-	# Save to working directory to be file-backed for OrderSystem
-	products_path = os.path.join(os.getcwd(), "products.json")
-	routes_path = os.path.join(os.getcwd(), "routes.json")
-
-	with open(products_path, "wb") as pf:
-		pf.write(products_file.read())
-	with open(routes_path, "wb") as rf:
-		rf.write(routes_file.read())
-
-	msg = ensure_order_system(products_path, routes_path)
-	ensure_relay_system()
-	# Build dates list
-	dates = sorted(set(o.order_date.split(" ")[0] for o in order_system.get_all_orders())) if order_system else []
-	return f"{msg} (Using uploaded files)", dates
 
 
 def simulate_orders(max_products: int):
@@ -146,15 +113,13 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 	initial_status = initialize_systems()
 	
 	with gr.Tab("Catalog"):
-		gr.Markdown("System is ready with default products and routes. Upload custom files if needed.")
+		gr.Markdown("System is ready with built-in products and routes catalog.")
 		catalog_msg = gr.Textbox(label="Status", value=initial_status, interactive=False)
 		date_dropdown_1 = gr.Dropdown(choices=[], label="Available Dates", interactive=False)
 		
-		# Optional file uploads
-		products_file = gr.File(label="Upload custom products.json (optional)", file_types=[".json"])
-		routes_file = gr.File(label="Upload custom routes.json (optional)", file_types=[".json"])
-		load_btn = gr.Button("Load Custom Catalog")
-		load_btn.click(upload_catalog, inputs=[products_file, routes_file], outputs=[catalog_msg, date_dropdown_1])
+		# Refresh button to reload the catalog
+		refresh_btn = gr.Button("Refresh Catalog")
+		refresh_btn.click(lambda: (initialize_systems(), []), outputs=[catalog_msg, date_dropdown_1])
 
 	with gr.Tab("Orders"):
 		gr.Markdown("Simulate demo orders for all routes and locations, or upload an exported orders_*.json file.")
