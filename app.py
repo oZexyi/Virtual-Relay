@@ -1011,6 +1011,11 @@ def save_orders_with_confirmation(orders, date_str, day_num):
 		filename_date = date_str.replace("/", "-")
 		filename = f"all_orders_{filename_date}_Day{day_num}.json"
 		
+		# Check if file already exists - if so, don't create a duplicate
+		if os.path.exists(filename):
+			print(f"File {filename} already exists. Skipping creation to prevent duplicates.")
+			return
+		
 		# Load current confirmation state
 		confirmation_data = load_confirmation_state()
 		
