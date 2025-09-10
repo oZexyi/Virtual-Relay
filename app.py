@@ -1036,7 +1036,6 @@ def save_orders_with_confirmation(orders, date_str, day_num):
 		import os
 		if os.path.exists(filename):
 			file_size = os.path.getsize(filename)
-		else:
 		
 		# Debug: Count all JSON files in directory
 		import glob
@@ -1048,10 +1047,6 @@ def save_orders_with_confirmation(orders, date_str, day_num):
 		
 		
 		# Show ALL JSON files for debugging
-		
-		if consolidated_files:
-		if confirmed_files:
-		if order_files:
 		
 	except Exception as e:
 		print(f"Error saving consolidated orders: {e}")
