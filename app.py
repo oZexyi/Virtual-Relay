@@ -1547,10 +1547,10 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 				summary, details = create_relay(date_part, day_part)
 				
 				# Add information about selected orders
-				order_info = f"\n\nSelected Orders ({len(selected_order_data)}):\n"
-				for order_info in selected_order_data:
-					order = order_info['order']
-					order_info += f"- {order['order_id']}: {order['location']} ({order['total_trays']} trays, {order['total_stacks']} stacks)\n"
+				order_info_text = f"\n\nSelected Orders ({len(selected_order_data)}):\n"
+				for order_data in selected_order_data:
+					order = order_data['order']
+					order_info_text += f"- {order['order_id']}: {order['location']} ({order['total_trays']} trays, {order['total_stacks']} stacks)\n"
 				
 				# Add confirmation information
 				if confirmation_info and confirmation_info.get('confirmed'):
@@ -1561,7 +1561,7 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 				# Add JSON file information
 				json_info = f"\nOrders loaded from comprehensive JSON files with confirmation data for relay generation"
 				
-				return summary + order_info + confirmation_msg + json_info, details
+				return summary + order_info_text + confirmation_msg + json_info, details
 				
 			except Exception as e:
 				return f"Error creating relay from orders: {str(e)}", ""

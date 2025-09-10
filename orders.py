@@ -122,14 +122,16 @@ class OrderSystem:
         
         for route in routes:
             # Select random products (1 to max_products_per_order)
-            num_products = random.randint(1, min(max_products_per_order, len(products)))
+            # Limit to realistic demo size - max 5 products per order
+            num_products = random.randint(1, min(5, max_products_per_order, len(products)))
             selected_products = random.sample(products, num_products)
             
             order_items = []
             for product in selected_products:
                 # Generate random units that are multiples of units_per_tray
+                # Limit to realistic demo size (max 2 trailers per location)
                 min_trays = 1
-                max_trays = 50  # Increased demo range to ensure multiple trailers for some locations
+                max_trays = 2  # Realistic demo range - max 2 trailers per location
                 num_trays = random.randint(min_trays, max_trays)
                 units_ordered = num_trays * product.units_per_tray
                 
