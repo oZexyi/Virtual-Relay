@@ -734,6 +734,130 @@ def load_confirmation_state():
 		return {"confirmed": False, "status": "error"}
 
 
+def save_selection_state_global(order_date, order_day):
+	"""Save date and day selection to a persistent state file (global function)"""
+	try:
+		state_data = {
+			"selected_date": order_date.strip() if order_date else "",
+			"selected_day": order_day,
+			"timestamp": datetime.now().isoformat(),
+			"confirmed": True,
+			"status": "confirmed"
+		}
+		
+		with open("selection_state.json", "w") as f:
+			json.dump(state_data, f, indent=2)
+		
+		print(f"Saved selection state: {order_date} Day {order_day}")
+		return True
+	except Exception as e:
+		print(f"Error saving selection state: {e}")
+		return False
+
+
+def load_selection_state_global():
+	"""Load date and day selection from persistent state file (global function)"""
+	try:
+		with open("selection_state.json", "r") as f:
+			state_data = json.load(f)
+		
+		date = state_data.get("selected_date", "")
+		day = state_data.get("selected_day", "1")
+		confirmed = state_data.get("confirmed", False)
+		
+		print(f"Loaded selection state: {date} Day {day} (confirmed: {confirmed})")
+		return date, day, confirmed
+	except FileNotFoundError:
+		print("No selection state file found")
+		return "", "1", False
+	except Exception as e:
+		print(f"Error loading selection state: {e}")
+		return "", "1", False
+
+
+def confirm_date_and_day_global(order_date, order_day):
+	"""Confirm and lock in the selected date and day with persistent storage (global function)"""
+	
+	print(f"DEBUG: confirm_date_and_day_global called with date='{order_date}', day='{order_day}'")
+	
+	if not order_date or not order_date.strip():
+		print("DEBUG: No date provided")
+		return "Please enter a date first", "Please select date and day, then confirm"
+	
+	if not order_day:
+		print("DEBUG: No day provided")
+		return "Please select a day first", "Please select date and day, then confirm"
+	
+	# Validate date format
+	try:
+		datetime.strptime(order_date.strip(), "%m/%d/%Y")
+		print(f"DEBUG: Date format validation passed for '{order_date.strip()}'")
+	except ValueError:
+		print(f"DEBUG: Date format validation failed for '{order_date.strip()}'")
+		return "Invalid date format. Use MM/DD/YYYY", "Please select date and day, then confirm"
+	
+	# Validate day
+	try:
+		day_num = int(order_day)
+		if day_num not in [1, 2, 4, 5, 6]:
+			print(f"DEBUG: Invalid day number: {day_num}")
+			return "Invalid day. Select 1, 2, 4, 5, or 6", "Please select date and day, then confirm"
+		print(f"DEBUG: Day validation passed for '{order_day}'")
+	except ValueError:
+		print(f"DEBUG: Day conversion failed for '{order_day}'")
+		return "Invalid day selection", "Please select date and day, then confirm"
+	
+	# Save to persistent state file
+	print(f"DEBUG: Attempting to save state for date='{order_date.strip()}', day='{order_day}'")
+	if save_selection_state_global(order_date, order_day):
+		status_msg = f"CONFIRMED: {order_date.strip()} Day {order_day}\nSaved to persistent state\nReady to generate orders!"
+		print(f"DEBUG: State saved successfully")
+		return f"Date and day confirmed: {order_date.strip()} Day {order_day}", status_msg
+	else:
+		print(f"DEBUG: Failed to save state")
+		return "Error saving selection state", "Please try again"
+
+
+def create_orders_with_confirmed_data_global(max_products):
+	"""Create orders using the confirmed date and day from persistent state (global function)"""
+	
+	# Load confirmed data from file
+	confirmed_date, confirmed_day, is_confirmed = load_selection_state_global()
+	
+	if not is_confirmed or not confirmed_date:
+		return "Please confirm date and day selection first", []
+	
+	return create_orders_for_date_and_day(confirmed_date, confirmed_day, max_products)
+
+
+def clear_selection_state_global():
+	"""Clear the persistent selection state (global function)"""
+	try:
+		import os
+		if os.path.exists("selection_state.json"):
+			os.remove("selection_state.json")
+			print("Cleared selection state")
+		
+		return "", "1", "Selection cleared. Please select date and day, then confirm"
+	except Exception as e:
+		print(f"Error clearing selection state: {e}")
+		return "", "1", "Error clearing selection"
+
+
+def initialize_order_ui_global():
+	"""Initialize the order UI with any existing confirmed state (global function)"""
+	try:
+		confirmed_date, confirmed_day, is_confirmed = load_selection_state_global()
+		
+		if is_confirmed and confirmed_date:
+			status_msg = f"CONFIRMED: {confirmed_date} Day {confirmed_day}\nLoaded from persistent state\nReady to generate orders!"
+			return confirmed_date, confirmed_day, status_msg
+		else:
+			return "", "1", "Please select date and day, then confirm"
+	except Exception as e:
+		return "", "1", "Please select date and day, then confirm"
+
+
 def get_north_carolina_datetime_for_audit():
 	"""
 	Get current North Carolina date and time for audit trail purposes
@@ -849,14 +973,77 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 	initial_status = initialize_systems()
 	initial_dates = get_initial_dates()
 	
-	with gr.Tab("Catalog"):
-		gr.Markdown("System is ready with built-in products and routes catalog.")
-		catalog_msg = gr.Textbox(label="Status", value=initial_status, interactive=False)
-		date_dropdown_1 = gr.Dropdown(choices=initial_dates, label="Available Dates", interactive=False)
+	with gr.Tab("System Overview"):
+		gr.Markdown("# Virtual Relay System - Professional Demo")
+		gr.Markdown("""
+		## 🏭 **Manufacturing Logistics Management System**
 		
-		# Refresh button to reload the catalog
-		refresh_btn = gr.Button("Refresh Catalog")
-		refresh_btn.click(lambda: (initialize_systems(), get_initial_dates()), outputs=[catalog_msg, date_dropdown_1])
+		This system demonstrates a comprehensive order management and relay generation platform designed for manufacturing facilities. The application showcases real-world software engineering practices including API integration, data persistence, and professional user interface design.
+		
+		### **Key Features:**
+		
+		#### **📋 Order Management**
+		- **API-Driven Date Selection**: North Carolina timezone integration via WorldTimeAPI
+		- **Structured Day Selection**: Day 1, 2, 4, 5, or 6 workflow management
+		- **Persistent State Management**: JSON file-based confirmation system
+		- **Comprehensive Order Generation**: 235 products across all routes and locations
+		
+		#### **🚛 Relay Generation**
+		- **Automated Trailer Assignment**: 98-stack limit with automatic trailer #2, #3 creation
+		- **Location-Based Routing**: Multi-trailer support for high-volume locations
+		- **JSON Data Persistence**: Complete order-to-relay workflow with file storage
+		- **Professional Data Management**: Comprehensive metadata tracking
+		
+		#### **🔧 Technical Architecture**
+		- **Object-Oriented Design**: Clean separation of concerns with Order, Route, and Relay classes
+		- **File I/O Operations**: JSON serialization and deserialization for data persistence
+		- **Error Handling**: Comprehensive exception handling with fallback mechanisms
+		- **State Management**: Professional application state handling across sessions
+		
+		### **🎓 Software Engineering Practices Demonstrated:**
+		
+		- **API Integration**: WorldTimeAPI for real-time timezone management
+		- **Data Persistence**: JSON file storage for orders and system state
+		- **User Experience Design**: Professional interface with clear workflow guidance
+		- **Error Resilience**: Robust error handling and user feedback systems
+		- **Separation of Concerns**: Modular architecture with distinct system responsibilities
+		
+		### **📊 System Statistics:**
+		""")
+		
+		# System status display
+		with gr.Row():
+			with gr.Column():
+				gr.Markdown("**System Status:**")
+				system_status = gr.Textbox(label="Initialization Status", value=initial_status, interactive=False)
+				gr.Markdown("**Available Order Dates:**")
+				date_dropdown_1 = gr.Dropdown(choices=initial_dates, label="Dates with Orders", interactive=False)
+			with gr.Column():
+				gr.Markdown("**System Capabilities:**")
+				gr.Markdown("""
+				- **Products**: 235 unique items
+				- **Routes**: 15 delivery routes
+				- **Locations**: Multi-location support
+				- **API Integration**: North Carolina timezone
+				- **Data Persistence**: JSON file storage
+				- **Trailer Management**: 98-stack limit with overflow
+				""")
+		
+		gr.Markdown("""
+		### **🚀 Getting Started:**
+		
+		1. **Orders Tab**: Get today's date, select day, confirm selection, then generate orders
+		2. **Relay Tab**: Select generated orders to create automated relay assignments
+		3. **Professional Workflow**: Complete order-to-relay process with persistent data storage
+		
+		---
+		
+		**Built with Python, Gradio, and WorldTimeAPI** | **Professional Manufacturing Logistics Demo**
+		""")
+		
+		# Refresh button to reload system status
+		refresh_btn = gr.Button("Refresh System Status")
+		refresh_btn.click(lambda: (initialize_systems(), get_initial_dates()), outputs=[system_status, date_dropdown_1])
 
 	with gr.Tab("Orders"):
 		gr.Markdown("## Order Management System")
@@ -868,7 +1055,7 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 				gr.Markdown("**Step 1:** Get today's date and select day")
 				gr.Markdown("**API Integration:** Get current North Carolina date automatically")
 				with gr.Row():
-					order_date_input = gr.Textbox(label="Order Date", placeholder="MM/DD/YYYY (e.g., 12/25/2024)", interactive=True, value="")
+					order_date_input = gr.Textbox(label="Order Date", placeholder="MM/DD/YYYY (e.g., 12/25/2024)", interactive=True)
 					get_today_btn = gr.Button("Get Today's Date", variant="secondary", size="sm")
 				order_day_dropdown = gr.Dropdown(
 					choices=["1", "2", "4", "5", "6"],
@@ -901,126 +1088,21 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 			nc_date = get_north_carolina_date_for_orders()
 			return nc_date
 		
-		def save_selection_state(order_date, order_day):
-			"""Save date and day selection to a persistent state file"""
-			try:
-				state_data = {
-					"selected_date": order_date.strip() if order_date else "",
-					"selected_day": order_day,
-					"timestamp": datetime.now().isoformat(),
-					"confirmed": True,
-					"status": "confirmed"
-				}
-				
-				with open("selection_state.json", "w") as f:
-					json.dump(state_data, f, indent=2)
-				
-				print(f"Saved selection state: {order_date} Day {order_day}")
-				return True
-			except Exception as e:
-				print(f"Error saving selection state: {e}")
-				return False
-		
-		def load_selection_state():
-			"""Load date and day selection from persistent state file"""
-			try:
-				with open("selection_state.json", "r") as f:
-					state_data = json.load(f)
-				
-				date = state_data.get("selected_date", "")
-				day = state_data.get("selected_day", "1")
-				confirmed = state_data.get("confirmed", False)
-				
-				print(f"Loaded selection state: {date} Day {day} (confirmed: {confirmed})")
-				return date, day, confirmed
-			except FileNotFoundError:
-				print("No selection state file found")
-				return "", "1", False
-			except Exception as e:
-				print(f"Error loading selection state: {e}")
-				return "", "1", False
-		
-		def confirm_date_and_day(order_date, order_day):
-			"""Confirm and lock in the selected date and day with persistent storage"""
-			
-			if not order_date or not order_date.strip():
-				return "Please enter a date first", "Please select date and day, then confirm"
-			
-			if not order_day:
-				return "Please select a day first", "Please select date and day, then confirm"
-			
-			# Validate date format
-			try:
-				datetime.strptime(order_date.strip(), "%m/%d/%Y")
-			except ValueError:
-				return "Invalid date format. Use MM/DD/YYYY", "Please select date and day, then confirm"
-			
-			# Validate day
-			try:
-				day_num = int(order_day)
-				if day_num not in [1, 2, 4, 5, 6]:
-					return "Invalid day. Select 1, 2, 4, 5, or 6", "Please select date and day, then confirm"
-			except ValueError:
-				return "Invalid day selection", "Please select date and day, then confirm"
-			
-			# Save to persistent state file
-			if save_selection_state(order_date, order_day):
-				status_msg = f"CONFIRMED: {order_date.strip()} Day {order_day}\nSaved to persistent state\nReady to generate orders!"
-				return f"Date and day confirmed: {order_date.strip()} Day {order_day}", status_msg
-			else:
-				return "Error saving selection state", "Please try again"
-		
-		def create_orders_with_confirmed_data(max_products):
-			"""Create orders using the confirmed date and day from persistent state"""
-			
-			# Load confirmed data from file
-			confirmed_date, confirmed_day, is_confirmed = load_selection_state()
-			
-			if not is_confirmed or not confirmed_date:
-				return "Please confirm date and day selection first", []
-			
-			return create_orders_for_date_and_day(confirmed_date, confirmed_day, max_products)
-		
-		def clear_selection_state():
-			"""Clear the persistent selection state"""
-			try:
-				import os
-				if os.path.exists("selection_state.json"):
-					os.remove("selection_state.json")
-					print("Cleared selection state")
-				
-				return "", "1", "Selection cleared. Please select date and day, then confirm"
-			except Exception as e:
-				print(f"Error clearing selection state: {e}")
-				return "", "1", "Error clearing selection"
-		
-		def initialize_order_ui():
-			"""Initialize the order UI with any existing confirmed state"""
-			try:
-				confirmed_date, confirmed_day, is_confirmed = load_selection_state()
-				
-				if is_confirmed and confirmed_date:
-					status_msg = f"CONFIRMED: {confirmed_date} Day {confirmed_day}\nLoaded from persistent state\nReady to generate orders!"
-					return confirmed_date, confirmed_day, status_msg
-				else:
-					return "", "1", "Please select date and day, then confirm"
-			except Exception as e:
-				return "", "1", "Please select date and day, then confirm"
-		
 		# Initialize UI with existing state
-		initial_date, initial_day, initial_status = initialize_order_ui()
+		initial_date, initial_day, initial_status = initialize_order_ui_global()
 		
-		# Update UI components with initial values if they exist
-		if initial_date:
-			order_date_input.value = initial_date
-		if initial_day:
-			order_day_dropdown.value = initial_day
-		if initial_status:
-			date_day_status.value = initial_status
+		# Set initial values for UI components
+		def initialize_ui_values():
+			return initial_date, initial_day, initial_status
 		
-		confirm_date_day_btn.click(confirm_date_and_day, inputs=[order_date_input, order_day_dropdown], outputs=[sim_msg, date_day_status])
-		clear_selection_btn.click(clear_selection_state, inputs=None, outputs=[order_date_input, order_day_dropdown, date_day_status])
-		simulate_btn.click(create_orders_with_confirmed_data, inputs=[max_products], outputs=[sim_msg, order_date_dropdown])
+		# Initialize the UI components with loaded state
+		order_date_input.value = initial_date
+		order_day_dropdown.value = initial_day
+		date_day_status.value = initial_status
+		
+		confirm_date_day_btn.click(confirm_date_and_day_global, inputs=[order_date_input, order_day_dropdown], outputs=[sim_msg, date_day_status])
+		clear_selection_btn.click(clear_selection_state_global, inputs=None, outputs=[order_date_input, order_day_dropdown, date_day_status])
+		simulate_btn.click(create_orders_with_confirmed_data_global, inputs=[max_products], outputs=[sim_msg, order_date_dropdown])
 		refresh_orders_btn.click(get_dates, inputs=None, outputs=[order_date_dropdown])
 		order_date_dropdown.change(update_order_day_choices, inputs=[order_date_dropdown], outputs=[order_day_dropdown])
 		order_day_dropdown.change(get_order_summary_for_date_day, inputs=[order_date_dropdown, order_day_dropdown], outputs=[order_summary])
