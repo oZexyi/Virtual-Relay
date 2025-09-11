@@ -595,19 +595,11 @@ def load_orders_from_json_files(selected_date: str, day_number: int = None):
 				confirmed_date = metadata.get('confirmed_date', '')
 				confirmed_day = metadata.get('confirmed_day', '1')
 				
-				print(f"Checking file {file_path}: confirmed_date='{confirmed_date}', confirmed_day='{confirmed_day}'")
-				print(f"Looking for: selected_date='{selected_date}', day_number={day_number}")
-				
 				# Check if this file matches our search criteria
 				if confirmed_date == selected_date:
 					if day_number is None or str(day_number) == str(confirmed_day):
 						orders = file_data.get('orders', [])
-						print(f"Found matching file: {file_path} with {len(orders)} orders")
 						return orders
-					else:
-						print(f"Date matches but day doesn't: file day='{confirmed_day}', search day={day_number}")
-				else:
-					print(f"Date doesn't match: file date='{confirmed_date}', search date='{selected_date}'")
 						
 			except Exception as e:
 				print(f"Error reading order file {file_path}: {e}")
@@ -623,8 +615,6 @@ def load_orders_from_json_files(selected_date: str, day_number: int = None):
 def create_relay_from_orders_data(orders_data):
 	"""Create relay locations from orders data loaded from JSON files"""
 	try:
-		print(f"Creating relay from {len(orders_data)} orders")
-		
 		# Group orders by location
 		location_orders = {}
 		for order_data in orders_data:
@@ -632,8 +622,6 @@ def create_relay_from_orders_data(orders_data):
 			if location not in location_orders:
 				location_orders[location] = []
 			location_orders[location].append(order_data)
-		
-		print(f"Grouped orders into {len(location_orders)} locations: {list(location_orders.keys())}")
 		
 		# Create Location objects from orders
 		locations = []
@@ -647,8 +635,6 @@ def create_relay_from_orders_data(orders_data):
 				total_trays += order_data.get('total_trays', 0)
 				total_stacks += order_data.get('total_stacks', 0)
 			
-			print(f"Creating location '{location_name}' with {total_trays} trays, {total_stacks} stacks")
-			
 			# Create location with calculated totals
 			location = Location(location_name, bread_trays=total_trays, bulk_trays=0, cake_pallets=0)
 			location.total_stacks = total_stacks  # Override with calculated stacks
@@ -656,7 +642,6 @@ def create_relay_from_orders_data(orders_data):
 			# Assign trailers based on stack count
 			location.assign_trailers()
 			
-			print(f"Created location '{location_name}' with {len(location.trailers)} trailers")
 			locations.append(location)
 		
 		return locations
@@ -694,38 +679,22 @@ def create_relay(selected_date: str, day_number: str | None):
 		if not locations:
 			return f"Failed to create relay from orders for {selected_date} Day {day_number if day_number else '1'}.", ""
 
-		print(f"Created {len(locations)} locations from {len(orders)} orders")
-		for loc in locations:
-			print(f"Location {loc.name}: {loc.total_stacks} stacks, {len(loc.trailers)} trailers")
 
-		# Build summary
+		# Build simplified summary
 		summary_lines = [
-			"== AUTOMATED RELAY SUMMARY ==",
+			"== RELAY ASSIGNMENTS ==",
 			f"Date: {selected_date}  Day: {day_num_int if day_num_int else '-'}",
-			f"Total Orders: {len(orders)}",
+			f"Total Locations: {len(locations)}",
 		]
 
-		for loc in locations:
-			total_trays = getattr(loc, 'total_trays', 0)
-			summary_lines.append(f"\n{loc.name}: Trays={total_trays}  Stacks={loc.total_stacks}  Trailers={len(loc.trailers)}")
-
-		# Build detailed trailer and order info
+		# Build simplified trailer assignments
 		details_lines = ["== TRAILER ASSIGNMENTS =="]
 		for loc in locations:
-			details_lines.append(f"\n📍 {loc.name}")
-			details_lines.append(f"   Total Stacks: {loc.total_stacks} | Total Trailers: {len(loc.trailers)}")
+			details_lines.append(f"\n{loc.name}:")
 			
-			# Show each trailer
+			# Show each trailer with LD number
 			for trailer in loc.trailers:
-				details_lines.append(f"   🚛 Trailer #{trailer.number}: {trailer.stacks} stacks")
-			
-			details_lines.append(f"\n   📋 Orders for {loc.name}:")
-			# Get orders for this location from the original orders data
-			location_orders = [o for o in orders if o.get('location') == loc.name]
-			for order_data in location_orders:
-				details_lines.append(f"      Order {order_data.get('order_id', 'Unknown')} (Route {order_data.get('route_id', 'Unknown')}): {order_data.get('total_trays', 0)} trays, {order_data.get('total_stacks', 0)} stacks")
-				for item in order_data.get('items', []):
-					details_lines.append(f"        - {item.get('product_name', 'Unknown')}: {item.get('units_ordered', 0)} units → {item.get('trays_needed', 0)} trays → {item.get('stacks_needed', 0)} stacks")
+				details_lines.append(f"  Trailer #{trailer.number} - LD: {trailer.ld_number}")
 
 		return "\n".join(summary_lines), "\n".join(details_lines)
 	
@@ -1379,22 +1348,17 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 				return "Please select at least one order first.", ""
 			
 			try:
-				print(f"Creating relay from selected orders: {selected_orders}")
 				ensure_order_system()
 				ensure_relay_system()
 				
 				# Get the actual order data from JSON files
 				_, order_data = get_available_orders_for_relay()
-				print(f"Available order data keys: {list(order_data.keys())}")
 				selected_order_data = []
 				
 				for selected_order_display in selected_orders:
 					if selected_order_display in order_data:
 						order_info = order_data[selected_order_display]
 						selected_order_data.append(order_info)
-						print(f"Found order data for: {selected_order_display}")
-					else:
-						print(f"Order data not found for: {selected_order_display}")
 				
 				if not selected_order_data:
 					return "No valid orders found for selection.", ""
@@ -1403,18 +1367,12 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 				first_order_info = selected_order_data[0]
 				metadata = first_order_info['metadata']
 				
-				print(f"Using metadata: {metadata}")
-				
 				# Use confirmed date/day from metadata
 				date_part = metadata['confirmed_date']
 				day_part = metadata['confirmed_day']
 				
-				print(f"Calling create_relay with date='{date_part}', day='{day_part}'")
-				
 				# Create relay using the existing system
 				summary, details = create_relay(date_part, day_part)
-				
-				print(f"create_relay returned summary length: {len(summary)}, details length: {len(details)}")
 				
 				# Add information about selected orders
 				order_info_text = f"\n\nSelected Orders: {selected_order_display}\n"
@@ -1424,7 +1382,6 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 				return summary + order_info_text, details
 				
 			except Exception as e:
-				print(f"Error in create_relay_from_orders: {e}")
 				return f"Error creating relay from orders: {str(e)}", ""
 
 		refresh_orders_btn.click(refresh_relay_orders, inputs=None, outputs=[order_select])
