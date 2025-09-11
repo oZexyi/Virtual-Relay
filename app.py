@@ -705,21 +705,21 @@ def create_relay(selected_date: str, day_number: str | None):
 			
 			# Show each trailer with LD number and stack count
 			for trailer in loc.trailers:
-				seal_display = trailer.seal_number if trailer.seal_number else "Click to set"
-				trailer_display = trailer.trailer_number if trailer.trailer_number else "Click to set"
-				
 				# Color coding: Red for un-dispatched, Green for dispatched
 				if trailer.dispatched:
 					color = "🟢"  # Green for dispatched
 					status = "🚛 DISPATCHED"
-					status_color = "green"
+					details_lines.append(f"  {color} Trailer #{trailer.number} - LD: {trailer.ld_number} ({trailer.stacks} stacks) - {status}")
 				else:
 					color = "🔴"  # Red for un-dispatched
-					status = "📋 Active"
-					status_color = "red"
+					details_lines.append(f"  {color} Trailer #{trailer.number} - LD: {trailer.ld_number} ({trailer.stacks} stacks)")
 				
-				details_lines.append(f"  {color} Trailer #{trailer.number} - LD: {trailer.ld_number} ({trailer.stacks} stacks) - {status}")
-				details_lines.append(f"    Seal #: {seal_display} | Trailer #: {trailer_display}")
+				# Only show seal/trailer numbers if they are set
+				if trailer.seal_number or trailer.trailer_number:
+					seal_display = trailer.seal_number if trailer.seal_number else "Not set"
+					trailer_display = trailer.trailer_number if trailer.trailer_number else "Not set"
+					details_lines.append(f"    Seal #: {seal_display} | Trailer #: {trailer_display}")
+				
 				if trailer.dispatched and trailer.dispatch_timestamp:
 					details_lines.append(f"    ✅ Dispatched: {trailer.dispatch_timestamp}")
 
@@ -733,10 +733,13 @@ def get_trailer_list():
 	"""Get list of all trailers for editing"""
 	global current_locations
 	if not current_locations:
+		print("No current_locations available for trailer list")
 		return []
 	
+	print(f"Getting trailer list from {len(current_locations)} locations")
 	trailer_list = []
 	for location in current_locations:
+		print(f"Processing location {location.name} with {len(location.trailers)} trailers")
 		for trailer in location.trailers:
 			seal_display = trailer.seal_number if trailer.seal_number else "Not set"
 			trailer_display = trailer.trailer_number if trailer.trailer_number else "Not set"
@@ -749,8 +752,11 @@ def get_trailer_list():
 				color = "🔴"  # Red for un-dispatched
 				status = "Active"
 			
-			trailer_list.append(f"{color} {location.name} - Trailer #{trailer.number} (LD: {trailer.ld_number}) - Seal: {seal_display}, Trailer: {trailer_display} [{status}]")
+			trailer_entry = f"{color} {location.name} - Trailer #{trailer.number} (LD: {trailer.ld_number}) - Seal: {seal_display}, Trailer: {trailer_display} [{status}]"
+			trailer_list.append(trailer_entry)
+			print(f"Added trailer: {trailer_entry}")
 	
+	print(f"Returning {len(trailer_list)} trailers")
 	return trailer_list
 
 
@@ -758,32 +764,42 @@ def get_trailer_info(trailer_selection):
 	"""Get current seal and trailer numbers for the selected trailer"""
 	global current_locations
 	if not current_locations or not trailer_selection:
+		print(f"get_trailer_info: No locations ({current_locations is None}) or no selection ({trailer_selection})")
 		return "", ""
 	
 	try:
+		print(f"get_trailer_info: Processing selection: {trailer_selection}")
 		# Parse trailer selection to find the trailer
 		# Format: "🟢/🔴 Location - Trailer #X (LD: Y) - Seal: Z, Trailer: W [Status]"
 		parts = trailer_selection.split(" - ")
 		if len(parts) < 2:
+			print(f"get_trailer_info: Invalid format, parts: {parts}")
 			return "", ""
 		
 		# Remove color emoji from location name
 		location_name = parts[0].split(" ", 1)[-1]  # Remove emoji and keep location name
 		trailer_part = parts[1]
 		
+		print(f"get_trailer_info: Looking for location '{location_name}'")
+		
 		# Extract trailer number from "Trailer #X"
 		trailer_num = int(trailer_part.split("#")[1].split(" ")[0])
+		print(f"get_trailer_info: Looking for trailer #{trailer_num}")
 		
 		# Find the location and trailer
 		for location in current_locations:
 			if location.name == location_name:
+				print(f"get_trailer_info: Found location {location_name}")
 				for trailer in location.trailers:
 					if trailer.number == trailer_num:
+						print(f"get_trailer_info: Found trailer #{trailer_num}, seal: '{trailer.seal_number}', trailer: '{trailer.trailer_number}'")
 						return trailer.seal_number, trailer.trailer_number
 		
+		print(f"get_trailer_info: Trailer #{trailer_num} not found at {location_name}")
 		return "", ""
 		
 	except Exception as e:
+		print(f"get_trailer_info: Error: {e}")
 		return "", ""
 
 
@@ -791,39 +807,55 @@ def edit_trailer_info(trailer_selection, seal_number, trailer_number):
 	"""Edit trailer seal and trailer numbers"""
 	global current_locations
 	if not current_locations or not trailer_selection:
+		print(f"edit_trailer_info: No locations or selection")
 		return "No trailer selected or no locations available.", get_trailer_list()
 	
 	try:
+		print(f"edit_trailer_info: Processing selection: {trailer_selection}")
+		print(f"edit_trailer_info: Seal: '{seal_number}', Trailer: '{trailer_number}'")
+		
 		# Parse trailer selection to find the trailer
 		# Format: "🟢/🔴 Location - Trailer #X (LD: Y) - Seal: Z, Trailer: W [Status]"
 		parts = trailer_selection.split(" - ")
 		if len(parts) < 2:
+			print(f"edit_trailer_info: Invalid format, parts: {parts}")
 			return "Invalid trailer selection format.", get_trailer_list()
 		
 		# Remove color emoji from location name
 		location_name = parts[0].split(" ", 1)[-1]  # Remove emoji and keep location name
 		trailer_part = parts[1]
 		
+		print(f"edit_trailer_info: Looking for location '{location_name}'")
+		
 		# Extract trailer number from "Trailer #X"
 		trailer_num = int(trailer_part.split("#")[1].split(" ")[0])
+		print(f"edit_trailer_info: Looking for trailer #{trailer_num}")
 		
 		# Find the location and trailer
 		for location in current_locations:
 			if location.name == location_name:
+				print(f"edit_trailer_info: Found location {location_name}")
 				for trailer in location.trailers:
 					if trailer.number == trailer_num:
+						print(f"edit_trailer_info: Found trailer #{trailer_num}")
 						if trailer.dispatched:
+							print(f"edit_trailer_info: Trailer is dispatched, cannot edit")
 							return f"❌ Cannot edit Trailer #{trailer_num} at {location_name} - it has been dispatched and is final.", get_trailer_list()
 						
 						# Update trailer information
+						old_seal = trailer.seal_number
+						old_trailer = trailer.trailer_number
 						trailer.seal_number = seal_number.strip() if seal_number else ""
 						trailer.trailer_number = trailer_number.strip() if trailer_number else ""
 						
+						print(f"edit_trailer_info: Updated trailer #{trailer_num}: seal '{old_seal}' -> '{trailer.seal_number}', trailer '{old_trailer}' -> '{trailer.trailer_number}'")
 						return f"Updated Trailer #{trailer_num} at {location_name}: Seal #{trailer.seal_number}, Trailer #{trailer.trailer_number}", get_trailer_list()
 		
+		print(f"edit_trailer_info: Trailer #{trailer_num} not found at {location_name}")
 		return f"Trailer #{trailer_num} not found at {location_name}.", get_trailer_list()
 		
 	except Exception as e:
+		print(f"edit_trailer_info: Error: {e}")
 		return f"Error updating trailer: {str(e)}", get_trailer_list()
 
 
