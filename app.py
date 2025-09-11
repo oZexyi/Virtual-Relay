@@ -681,8 +681,6 @@ def load_orders_from_json_files(selected_date: str, day_number: int = None):
 					if day_number is None or str(day_number) == str(confirmed_day):
 						orders = file_data.get('orders', [])
 						return orders
-					else:
-				else:
 					
 			except Exception as e:
 				print(f"Error reading consolidated order file {file_path}: {e}")
@@ -703,18 +701,13 @@ def load_orders_from_json_files(selected_date: str, day_number: int = None):
 				# Check if this file matches our search criteria
 				if confirmed_date == selected_date:
 					if day_number is None or str(day_number) == str(confirmed_day):
-						print(f"DEBUG: Found matching file: {file_path}")
 						orders = file_data.get('orders', [])
-						print(f"DEBUG: Returning {len(orders)} orders from confirmed file")
 						return orders
-					else:
-				else:
 					
 			except Exception as e:
 				print(f"Error reading confirmed order file {file_path}: {e}")
 				continue
 		
-		print(f"DEBUG: No matching orders found in JSON files")
 		return []
 		
 	except Exception as e:
@@ -1055,9 +1048,8 @@ def save_orders_with_confirmation(orders, date_str, day_num):
 		
 		print(f"Saved {len(orders)} orders to file: {filename}")
 		
-		
 	except Exception as e:
-		print(f"Error saving consolidated orders: {e}")
+		print(f"Error saving orders: {e}")
 
 
 def load_confirmation_state():
