@@ -635,12 +635,18 @@ def create_relay_from_orders_data(orders_data):
 				total_trays += order_data.get('total_trays', 0)
 				total_stacks += order_data.get('total_stacks', 0)
 			
+			print(f"Location {location_name}: {total_trays} trays, {total_stacks} stacks")
+			
 			# Create location with calculated totals
 			location = Location(location_name, bread_trays=total_trays, bulk_trays=0, cake_pallets=0)
 			location.total_stacks = total_stacks  # Override with calculated stacks
 			
 			# Assign trailers based on stack count
 			location.assign_trailers()
+			
+			print(f"  Assigned {len(location.trailers)} trailers")
+			for trailer in location.trailers:
+				print(f"    Trailer #{trailer.number}: {trailer.stacks} stacks")
 			
 			locations.append(location)
 		
@@ -690,7 +696,7 @@ def create_relay(selected_date: str, day_number: str | None):
 		# Build simplified trailer assignments
 		details_lines = ["== TRAILER ASSIGNMENTS =="]
 		for loc in locations:
-			details_lines.append(f"\n{loc.name}: (Total: {loc.total_stacks} stacks)")
+			details_lines.append(f"\n{loc.name}: (Total: {loc.total_stacks} stacks, {len(loc.trailers)} trailers)")
 			
 			# Show each trailer with LD number and stack count
 			for trailer in loc.trailers:

@@ -134,13 +134,15 @@ class OrderSystem:
                 # Generate random units that are multiples of units_per_tray
                 if route.location in large_order_locations:
                     # Guarantee large orders for specific locations (2+ trailers)
-                    # Each product gets 8-12 trays to ensure 2+ trailers total
-                    min_trays = 8
-                    max_trays = 12
+                    # We need 100+ stacks total to get 2+ trailers
+                    # With stack heights of 17-20, we need 1700-2000+ trays total
+                    # With 5 products max, each product needs 340-400+ trays
+                    min_trays = 300
+                    max_trays = 500
                 else:
                     # Regular random orders for other locations
                     min_trays = 1
-                    max_trays = 4
+                    max_trays = 20
                 
                 num_trays = random.randint(min_trays, max_trays)
                 units_ordered = num_trays * product.units_per_tray
