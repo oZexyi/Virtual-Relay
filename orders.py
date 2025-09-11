@@ -121,7 +121,6 @@ class OrderSystem:
         # Define locations that should have guaranteed large orders (2+ trailers)
         large_order_locations = ['Greenville', 'Anderson', 'Gastonia', 'Spartanburg']
         
-        print(f"Creating orders for all {len(routes)} routes...")
         
         for route in routes:
             # Select random products (1 to max_products_per_order)
@@ -159,28 +158,25 @@ class OrderSystem:
         
         return simulated_orders
     
-    def print_system_stats(self):
-        """Print system statistics for demo purposes"""
-        print(f"\n{'='*60}")
-        print("SYSTEM STATISTICS")
-        print(f"{'='*60}")
-        print(f"Total Products: {len(self.products)}")
-        print(f"Total Routes: {len(self.routes)}")
-        print(f"Total Locations: {len(self.get_available_locations())}")
-        print(f"Total Orders: {len(self.orders)}")
+    def get_system_stats(self):
+        """Get system statistics for demo purposes"""
+        stats = {
+            'total_products': len(self.products),
+            'total_routes': len(self.routes),
+            'total_locations': len(self.get_available_locations()),
+            'total_orders': len(self.orders)
+        }
         
         if self.orders:
-            total_trays = sum(order.total_trays for order in self.orders.values())
-            total_stacks = sum(order.total_stacks for order in self.orders.values())
-            print(f"Total Trays Ordered: {total_trays}")
-            print(f"Total Stacks Ordered: {total_stacks}")
+            stats['total_trays'] = sum(order.total_trays for order in self.orders.values())
+            stats['total_stacks'] = sum(order.total_stacks for order in self.orders.values())
         
-        print(f"\nLocations:")
+        stats['locations'] = {}
         for location in sorted(self.get_available_locations()):
             routes_in_location = len([r for r in self.routes.values() if r.location == location])
-            print(f"  {location}: {routes_in_location} routes")
+            stats['locations'][location] = routes_in_location
         
-        print(f"{'='*60}")
+        return stats
     
     def calculate_order_quantities(self, product_number: int, units_ordered: int) -> Tuple[int, int]:
         """
@@ -208,7 +204,6 @@ class OrderSystem:
         day_number: Optional day number
         """
         if route_id not in self.routes:
-            print(f"Route '{route_id}' not found.")
             return None
         
         route = self.routes[route_id]
@@ -228,12 +223,10 @@ class OrderSystem:
             units_ordered = item.get('units_ordered', 0)
             
             if product_number not in self.products:
-                print(f"Product '{product_number}' not found.")
                 continue
             
             # All products are available for every route
             if units_ordered <= 0:
-                print(f"Invalid units ordered for product '{product_number}': {units_ordered}")
                 continue
             
             product = self.products[product_number]
@@ -241,8 +234,6 @@ class OrderSystem:
             
             # Validate that units are in increments of units_per_tray
             if units_ordered % product.units_per_tray != 0:
-                print(f"Warning: Units ordered ({units_ordered}) for {product.name} is not in increments of {product.units_per_tray}")
-                print(f"Adjusting to {math.ceil(units_ordered / product.units_per_tray) * product.units_per_tray} units")
                 units_ordered = math.ceil(units_ordered / product.units_per_tray) * product.units_per_tray
                 trays_needed, stacks_needed = self.calculate_order_quantities(product_number, units_ordered)
             
@@ -262,7 +253,6 @@ class OrderSystem:
             total_stacks += stacks_needed
         
         if not processed_items:
-            print("No valid items in order.")
             return None
         
         # Use provided date or current date
@@ -307,26 +297,16 @@ class OrderSystem:
         return list(self.orders.values())
     
     @staticmethod
-    def print_order_summary(order: Order):
-        """Print a detailed summary of an order"""
-        print(f"\n{'='*60}")
-        print(f"ORDER SUMMARY")
-        print(f"{'='*60}")
-        print(f"Order ID: {order.order_id}")
-        print(f"Route: {order.route_id}")
-        print(f"Location: {order.location}")
-        print(f"Order Date: {order.order_date}")
-        print(f"{'='*60}")
-        
-        print(f"\n{'Product':<25} {'Units':<8} {'Trays':<8} {'Stacks':<8} {'Tray Type':<12}")
-        print(f"{'-'*65}")
-        
-        for item in order.items:
-            print(f"{item.product_name:<25} {item.units_ordered:<8} {item.trays_needed:<8} {item.stacks_needed:<8} {item.tray_type:<12}")
-        
-        print(f"{'-'*65}")
-        print(f"{'TOTALS':<25} {'':<8} {order.total_trays:<8} {order.total_stacks:<8}")
-        print(f"{'='*60}")
+    def get_order_summary(order: Order):
+        """Get a detailed summary of an order"""
+        summary = f"Order ID: {order.order_id}\n"
+        summary += f"Route: {order.route_id}\n"
+        summary += f"Location: {order.location}\n"
+        summary += f"Order Date: {order.order_date}\n"
+        summary += f"Total Trays: {order.total_trays}\n"
+        summary += f"Total Stacks: {order.total_stacks}\n"
+        summary += f"Items: {len(order.items)}"
+        return summary
     
     def save_orders_to_file(self, filename: str = None):
         """Save all orders to a JSON file"""
@@ -341,7 +321,6 @@ class OrderSystem:
         with open(filename, 'w') as f:
             json.dump(orders_data, f, indent=2)
         
-        print(f"Orders saved to {filename}")
         return filename
     
     def load_orders_from_file(self, filename: str):
@@ -360,10 +339,8 @@ class OrderSystem:
                 self.orders[order.order_id] = order
                 loaded_count += 1
             
-            print(f"Loaded {loaded_count} orders from {filename}")
             return True
         except Exception as e:
-            print(f"Error loading orders: {e}")
             return False
 
 
@@ -490,12 +467,19 @@ def main():
             try:
                 order_choice = int(input("Enter order number: ")) - 1
                 selected_order = orders[order_choice]
-                order_system.print_order_summary(selected_order)
+                print(order_system.get_order_summary(selected_order))
             except (ValueError, IndexError):
                 print("Invalid order selection.")
         
         elif choice == "6":
-            order_system.print_system_stats()
+            stats = order_system.get_system_stats()
+            print(f"Total Products: {stats['total_products']}")
+            print(f"Total Routes: {stats['total_routes']}")
+            print(f"Total Locations: {stats['total_locations']}")
+            print(f"Total Orders: {stats['total_orders']}")
+            if 'total_trays' in stats:
+                print(f"Total Trays: {stats['total_trays']}")
+                print(f"Total Stacks: {stats['total_stacks']}")
         
         elif choice == "7":
             if not order_system.orders:

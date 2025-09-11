@@ -785,12 +785,12 @@ def get_trailer_info_by_id(trailer_identifier):
 	"""Get current seal and trailer numbers for the selected trailer by identifier"""
 	global current_locations
 	if not current_locations or not trailer_identifier:
-		return "", ""
+		return "No trailer selected", "", ""
 	
 	try:
 		# Parse trailer identifier: "LocationName_TrailerNumber"
 		if "_" not in trailer_identifier:
-			return "", ""
+			return "Invalid trailer identifier format", "", ""
 		
 		location_name, trailer_num_str = trailer_identifier.split("_", 1)
 		trailer_num = int(trailer_num_str)
@@ -800,12 +800,20 @@ def get_trailer_info_by_id(trailer_identifier):
 			if location.name == location_name:
 				for trailer in location.trailers:
 					if trailer.number == trailer_num:
-						return trailer.seal_number, trailer.trailer_number
+						# Create display info
+						status = "DISPATCHED" if trailer.dispatched else "Active"
+						seal_display = trailer.seal_number if trailer.seal_number else "Not set"
+						trailer_display = trailer.trailer_number if trailer.trailer_number else "Not set"
+						
+						selected_info = f"Selected: {location_name} - Trailer #{trailer_num} (LD: {trailer.ld_number}, {trailer.stacks} stacks) - Status: {status}"
+						selected_info += f"\nCurrent Seal #: {seal_display} | Current Trailer #: {trailer_display}"
+						
+						return selected_info, trailer.seal_number, trailer.trailer_number
 		
-		return "", ""
+		return f"Trailer #{trailer_num} not found at {location_name}", "", ""
 		
 	except Exception as e:
-		return "", ""
+		return f"Error selecting trailer: {str(e)}", "", ""
 
 
 def edit_trailer_info_by_id(trailer_identifier, seal_number, trailer_number):
