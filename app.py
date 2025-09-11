@@ -439,119 +439,43 @@ def get_available_days_for_date(selected_date: str):
 
 
 def get_available_orders_for_relay():
-	"""Get available orders from comprehensive JSON files for relay selection"""
+	"""Get available orders from JSON files for relay selection"""
 	try:
-		
-		# Look for comprehensive order JSON files in the current directory
 		import os
 		import glob
 		
-		# First try to find consolidated order files
-		consolidated_files = glob.glob("all_orders_*.json")
-		confirmed_files = glob.glob("confirmed_orders_*.json")
+		# Look for order files
 		order_files = glob.glob("orders_*.json")
-		
 		
 		formatted_orders = []
 		order_data = {}
 		
-		# Process consolidated order files first (most preferred)
-		for file_path in consolidated_files:
+		# Process order files
+		for file_path in order_files:
 			try:
 				with open(file_path, 'r') as f:
 					file_data = json.load(f)
 				
-				# Extract confirmation and orders data
-				confirmation = file_data.get('confirmation', {})
+				# Get orders and metadata
 				orders = file_data.get('orders', [])
 				metadata = file_data.get('metadata', {})
 				
-				for order in orders:
-					order_id = order.get('order_id', 'Unknown')
-					order_date = order.get('order_date', '')
-					location = order.get('location', 'Unknown')
-					
-					# Use confirmed date/day from metadata
-					confirmed_date = metadata.get('confirmed_date', '')
-					confirmed_day = metadata.get('confirmed_day', '1')
-					
-					# Format for display with consolidation info
-					order_display = f"{order_id} - {confirmed_date} Day {confirmed_day} - {location} [CONSOLIDATED]"
-					formatted_orders.append(order_display)
-					order_data[order_display] = {
-						'order': order,
-						'confirmation': confirmation,
-						'metadata': metadata
-					}
+				# Get confirmed date/day from metadata
+				confirmed_date = metadata.get('confirmed_date', '')
+				confirmed_day = metadata.get('confirmed_day', '1')
+				
+				# Create a single entry for this file
+				file_display = f"Orders for {confirmed_date} Day {confirmed_day}"
+				formatted_orders.append(file_display)
+				order_data[file_display] = {
+					'orders': orders,
+					'metadata': metadata,
+					'file_path': file_path
+				}
 					
 			except Exception as e:
-				print(f"Error reading consolidated order file {file_path}: {e}")
+				print(f"Error reading order file {file_path}: {e}")
 				continue
-		
-		# Process confirmed order files second (fallback)
-		for file_path in confirmed_files:
-			try:
-				with open(file_path, 'r') as f:
-					file_data = json.load(f)
-				
-				# Extract confirmation and orders data
-				confirmation = file_data.get('confirmation', {})
-				orders = file_data.get('orders', [])
-				metadata = file_data.get('metadata', {})
-				
-				for order in orders:
-					order_id = order.get('order_id', 'Unknown')
-					order_date = order.get('order_date', '')
-					location = order.get('location', 'Unknown')
-					
-					# Use confirmed date/day from metadata
-					confirmed_date = metadata.get('confirmed_date', '')
-					confirmed_day = metadata.get('confirmed_day', '1')
-					
-					# Format for display with confirmation info
-					order_display = f"{order_id} - {confirmed_date} Day {confirmed_day} - {location} [CONFIRMED]"
-					formatted_orders.append(order_display)
-					order_data[order_display] = {
-						'order': order,
-						'confirmation': confirmation,
-						'metadata': metadata
-					}
-					
-			except Exception as e:
-				print(f"Error reading confirmed order file {file_path}: {e}")
-				continue
-		
-		# Process regular order files if no consolidated or confirmed files found
-		if not consolidated_files and not confirmed_files:
-			for file_path in order_files:
-				try:
-					with open(file_path, 'r') as f:
-						file_orders = json.load(f)
-						
-					# Handle both single order and list of orders
-					if isinstance(file_orders, dict):
-						file_orders = [file_orders]
-					
-					for order in file_orders:
-						order_id = order.get('order_id', 'Unknown')
-						order_date = order.get('order_date', '')
-						location = order.get('location', 'Unknown')
-						
-						# Extract date and day from order_date
-						date_part = order_date.split(" ")[0] if order_date else "Unknown"
-						if "Day" in order_date:
-							day_part = order_date.split("Day ")[1].split(" ")[0]
-						else:
-							day_part = "1"
-						
-						# Format for display
-						order_display = f"{order_id} - {date_part} Day {day_part} - {location}"
-						formatted_orders.append(order_display)
-						order_data[order_display] = {'order': order}
-						
-				except Exception as e:
-					print(f"Error reading order file {file_path}: {e}")
-					continue
 		
 		return sorted(formatted_orders), order_data
 	except Exception as e:
@@ -1457,7 +1381,7 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 			return gr.Dropdown(choices=orders)
 
 		def create_relay_from_orders(selected_orders):
-			"""Create relay from selected orders loaded from comprehensive JSON files"""
+			"""Create relay from selected orders loaded from JSON files"""
 			if not selected_orders:
 				return "Please select at least one order first.", ""
 			
@@ -1468,53 +1392,32 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 				# Get the actual order data from JSON files
 				_, order_data = get_available_orders_for_relay()
 				selected_order_data = []
-				confirmation_info = None
 				
 				for selected_order_display in selected_orders:
 					if selected_order_display in order_data:
 						order_info = order_data[selected_order_display]
 						selected_order_data.append(order_info)
-						
-						# Extract confirmation info from the first order
-						if confirmation_info is None and 'confirmation' in order_info:
-							confirmation_info = order_info['confirmation']
 				
 				if not selected_order_data:
 					return "No valid orders found for selection.", ""
 				
 				# Create relay from the selected orders
-				# Use confirmed date/day if available, otherwise extract from order
 				first_order_info = selected_order_data[0]
-				first_order = first_order_info['order']
+				metadata = first_order_info['metadata']
 				
-				if 'metadata' in first_order_info:
-					# Use confirmed date/day from metadata
-					date_part = first_order_info['metadata']['confirmed_date']
-					day_part = first_order_info['metadata']['confirmed_day']
-				else:
-					# Fallback to extracting from order_date
-					date_part = first_order['order_date'].split(" ")[0]
-					day_part = first_order['order_date'].split("Day ")[1].split(" ")[0] if "Day" in first_order['order_date'] else "1"
+				# Use confirmed date/day from metadata
+				date_part = metadata['confirmed_date']
+				day_part = metadata['confirmed_day']
 				
 				# Create relay using the existing system
 				summary, details = create_relay(date_part, day_part)
 				
 				# Add information about selected orders
-				order_info_text = f"\n\nSelected Orders ({len(selected_order_data)}):\n"
-				for order_data in selected_order_data:
-					order = order_data['order']
-					order_info_text += f"- {order['order_id']}: {order['location']} ({order['total_trays']} trays, {order['total_stacks']} stacks)\n"
+				order_info_text = f"\n\nSelected Orders: {selected_order_display}\n"
+				order_info_text += f"Date: {date_part} Day {day_part}\n"
+				order_info_text += f"Total Orders: {len(first_order_info['orders'])}"
 				
-				# Add confirmation information
-				if confirmation_info and confirmation_info.get('confirmed'):
-					confirmation_msg = f"\nConfirmation Data: {confirmation_info['selected_date']} Day {confirmation_info['selected_day']} (Confirmed at {confirmation_info['timestamp']})"
-				else:
-					confirmation_msg = "\nNote: Using legacy order data (no confirmation available)"
-				
-				# Add JSON file information
-				json_info = f"\nOrders loaded from comprehensive JSON files with confirmation data for relay generation"
-				
-				return summary + order_info_text + confirmation_msg + json_info, details
+				return summary + order_info_text, details
 				
 			except Exception as e:
 				return f"Error creating relay from orders: {str(e)}", ""
