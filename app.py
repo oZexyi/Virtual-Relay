@@ -11,6 +11,7 @@ from relay_logic import RelaySystem, Location
 # Global systems (re-initialized as needed)
 order_system: OrderSystem | None = None
 relay_system: RelaySystem | None = None
+current_locations = []  # Store current locations for trailer editing
 
 # Initialize systems on startup
 def initialize_systems():
@@ -684,6 +685,10 @@ def create_relay(selected_date: str, day_number: str | None):
 		locations = create_relay_from_orders_data(orders)
 		if not locations:
 			return f"Failed to create relay from orders for {selected_date} Day {day_number if day_number else '1'}.", ""
+		
+		# Store current locations globally for trailer editing
+		global current_locations
+		current_locations = locations
 
 
 		# Build simplified summary
@@ -693,19 +698,176 @@ def create_relay(selected_date: str, day_number: str | None):
 			f"Total Locations: {len(locations)}",
 		]
 
-		# Build simplified trailer assignments
+		# Build simplified trailer assignments with color coding
 		details_lines = ["== TRAILER ASSIGNMENTS =="]
 		for loc in locations:
 			details_lines.append(f"\n{loc.name}: (Total: {loc.total_stacks} stacks, {len(loc.trailers)} trailers)")
 			
 			# Show each trailer with LD number and stack count
 			for trailer in loc.trailers:
-				details_lines.append(f"  Trailer #{trailer.number} - LD: {trailer.ld_number} ({trailer.stacks} stacks)")
+				seal_display = trailer.seal_number if trailer.seal_number else "Click to set"
+				trailer_display = trailer.trailer_number if trailer.trailer_number else "Click to set"
+				
+				# Color coding: Red for un-dispatched, Green for dispatched
+				if trailer.dispatched:
+					color = "🟢"  # Green for dispatched
+					status = "🚛 DISPATCHED"
+					status_color = "green"
+				else:
+					color = "🔴"  # Red for un-dispatched
+					status = "📋 Active"
+					status_color = "red"
+				
+				details_lines.append(f"  {color} Trailer #{trailer.number} - LD: {trailer.ld_number} ({trailer.stacks} stacks) - {status}")
+				details_lines.append(f"    Seal #: {seal_display} | Trailer #: {trailer_display}")
+				if trailer.dispatched and trailer.dispatch_timestamp:
+					details_lines.append(f"    ✅ Dispatched: {trailer.dispatch_timestamp}")
 
 		return "\n".join(summary_lines), "\n".join(details_lines)
 	
 	except Exception as e:
 		return f"Error creating relay: {str(e)}", ""
+
+
+def get_trailer_list():
+	"""Get list of all trailers for editing"""
+	global current_locations
+	if not current_locations:
+		return []
+	
+	trailer_list = []
+	for location in current_locations:
+		for trailer in location.trailers:
+			seal_display = trailer.seal_number if trailer.seal_number else "Not set"
+			trailer_display = trailer.trailer_number if trailer.trailer_number else "Not set"
+			
+			# Color coding for dropdown
+			if trailer.dispatched:
+				color = "🟢"  # Green for dispatched
+				status = "DISPATCHED"
+			else:
+				color = "🔴"  # Red for un-dispatched
+				status = "Active"
+			
+			trailer_list.append(f"{color} {location.name} - Trailer #{trailer.number} (LD: {trailer.ld_number}) - Seal: {seal_display}, Trailer: {trailer_display} [{status}]")
+	
+	return trailer_list
+
+
+def get_trailer_info(trailer_selection):
+	"""Get current seal and trailer numbers for the selected trailer"""
+	global current_locations
+	if not current_locations or not trailer_selection:
+		return "", ""
+	
+	try:
+		# Parse trailer selection to find the trailer
+		# Format: "🟢/🔴 Location - Trailer #X (LD: Y) - Seal: Z, Trailer: W [Status]"
+		parts = trailer_selection.split(" - ")
+		if len(parts) < 2:
+			return "", ""
+		
+		# Remove color emoji from location name
+		location_name = parts[0].split(" ", 1)[-1]  # Remove emoji and keep location name
+		trailer_part = parts[1]
+		
+		# Extract trailer number from "Trailer #X"
+		trailer_num = int(trailer_part.split("#")[1].split(" ")[0])
+		
+		# Find the location and trailer
+		for location in current_locations:
+			if location.name == location_name:
+				for trailer in location.trailers:
+					if trailer.number == trailer_num:
+						return trailer.seal_number, trailer.trailer_number
+		
+		return "", ""
+		
+	except Exception as e:
+		return "", ""
+
+
+def edit_trailer_info(trailer_selection, seal_number, trailer_number):
+	"""Edit trailer seal and trailer numbers"""
+	global current_locations
+	if not current_locations or not trailer_selection:
+		return "No trailer selected or no locations available.", get_trailer_list()
+	
+	try:
+		# Parse trailer selection to find the trailer
+		# Format: "🟢/🔴 Location - Trailer #X (LD: Y) - Seal: Z, Trailer: W [Status]"
+		parts = trailer_selection.split(" - ")
+		if len(parts) < 2:
+			return "Invalid trailer selection format.", get_trailer_list()
+		
+		# Remove color emoji from location name
+		location_name = parts[0].split(" ", 1)[-1]  # Remove emoji and keep location name
+		trailer_part = parts[1]
+		
+		# Extract trailer number from "Trailer #X"
+		trailer_num = int(trailer_part.split("#")[1].split(" ")[0])
+		
+		# Find the location and trailer
+		for location in current_locations:
+			if location.name == location_name:
+				for trailer in location.trailers:
+					if trailer.number == trailer_num:
+						if trailer.dispatched:
+							return f"❌ Cannot edit Trailer #{trailer_num} at {location_name} - it has been dispatched and is final.", get_trailer_list()
+						
+						# Update trailer information
+						trailer.seal_number = seal_number.strip() if seal_number else ""
+						trailer.trailer_number = trailer_number.strip() if trailer_number else ""
+						
+						return f"Updated Trailer #{trailer_num} at {location_name}: Seal #{trailer.seal_number}, Trailer #{trailer.trailer_number}", get_trailer_list()
+		
+		return f"Trailer #{trailer_num} not found at {location_name}.", get_trailer_list()
+		
+	except Exception as e:
+		return f"Error updating trailer: {str(e)}", get_trailer_list()
+
+
+def dispatch_trailer(trailer_selection, confirm_dispatch):
+	"""Dispatch a trailer (finalize it)"""
+	global current_locations
+	if not current_locations or not trailer_selection:
+		return "No trailer selected or no locations available.", get_trailer_list()
+	
+	if not confirm_dispatch:
+		return "Dispatch cancelled. Trailer remains active.", get_trailer_list()
+	
+	try:
+		# Parse trailer selection to find the trailer
+		# Format: "🟢/🔴 Location - Trailer #X (LD: Y) - Seal: Z, Trailer: W [Status]"
+		parts = trailer_selection.split(" - ")
+		if len(parts) < 2:
+			return "Invalid trailer selection format.", get_trailer_list()
+		
+		# Remove color emoji from location name
+		location_name = parts[0].split(" ", 1)[-1]  # Remove emoji and keep location name
+		trailer_part = parts[1]
+		
+		# Extract trailer number from "Trailer #X"
+		trailer_num = int(trailer_part.split("#")[1].split(" ")[0])
+		
+		# Find the location and trailer
+		for location in current_locations:
+			if location.name == location_name:
+				for trailer in location.trailers:
+					if trailer.number == trailer_num:
+						if trailer.dispatched:
+							return f"Trailer #{trailer_num} at {location_name} is already dispatched.", get_trailer_list()
+						
+						# Dispatch the trailer
+						trailer.dispatched = True
+						trailer.dispatch_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+						
+						return f"✅ DISPATCHED: Trailer #{trailer_num} at {location_name} has been finalized and shipped. Seal: {trailer.seal_number}, Trailer: {trailer.trailer_number}", get_trailer_list()
+		
+		return f"Trailer #{trailer_num} not found at {location_name}.", get_trailer_list()
+		
+	except Exception as e:
+		return f"Error dispatching trailer: {str(e)}", get_trailer_list()
 
 
 def update_order_day_choices(selected_date):
@@ -1342,6 +1504,23 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 		create_btn = gr.Button("Create Relay from Selected Orders", variant="primary")
 		summary_out = gr.Textbox(label="Relay Summary", lines=12, value="Create orders first, then select orders to generate relay")
 		details_out = gr.Textbox(label="Trailer & Order Details", lines=16)
+		
+		# Trailer editing section
+		gr.Markdown("## Edit Trailer Information")
+		trailer_select = gr.Dropdown(choices=[], label="Select Trailer to Edit", interactive=True)
+		seal_input = gr.Textbox(label="Seal Number", placeholder="Enter seal number")
+		trailer_num_input = gr.Textbox(label="Trailer Number", placeholder="Enter trailer number")
+		update_trailer_btn = gr.Button("Update Trailer Information", variant="secondary")
+		trailer_status = gr.Textbox(label="Trailer Update Status", interactive=False)
+		
+		# Dispatch section
+		gr.Markdown("## Dispatch Trailer")
+		dispatch_confirm = gr.Checkbox(label="I confirm I want to dispatch this trailer (PERMANENT ACTION)", value=False)
+		dispatch_btn = gr.Button("Dispatch Trailer", variant="stop")
+		dispatch_status = gr.Textbox(label="Dispatch Status", interactive=False)
+		
+		# Refresh trailer list button
+		refresh_trailers_btn = gr.Button("Refresh Trailer List")
 
 		def refresh_relay_orders():
 			"""Refresh the relay order dropdown with current order data"""
@@ -1351,7 +1530,7 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 		def create_relay_from_orders(selected_orders):
 			"""Create relay from selected orders loaded from JSON files"""
 			if not selected_orders:
-				return "Please select at least one order first.", ""
+				return "Please select at least one order first.", "", gr.Dropdown(choices=[])
 			
 			try:
 				ensure_order_system()
@@ -1367,7 +1546,7 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 						selected_order_data.append(order_info)
 				
 				if not selected_order_data:
-					return "No valid orders found for selection.", ""
+					return "No valid orders found for selection.", "", gr.Dropdown(choices=[])
 				
 				# Create relay from the selected orders
 				first_order_info = selected_order_data[0]
@@ -1385,13 +1564,26 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 				order_info_text += f"Date: {date_part} Day {day_part}\n"
 				order_info_text += f"Total Orders: {len(first_order_info['orders'])}"
 				
-				return summary + order_info_text, details
+				# Get updated trailer list for editing
+				trailer_list = get_trailer_list()
+				
+				return summary + order_info_text, details, gr.Dropdown(choices=trailer_list)
 				
 			except Exception as e:
-				return f"Error creating relay from orders: {str(e)}", ""
+				return f"Error creating relay from orders: {str(e)}", "", gr.Dropdown(choices=[])
 
 		refresh_orders_btn.click(refresh_relay_orders, inputs=None, outputs=[order_select])
-		create_btn.click(create_relay_from_orders, inputs=[order_select], outputs=[summary_out, details_out])
+		create_btn.click(create_relay_from_orders, inputs=[order_select], outputs=[summary_out, details_out, trailer_select])
+		
+		# Trailer editing event handlers
+		refresh_trailers_btn.click(get_trailer_list, inputs=None, outputs=[trailer_select])
+		update_trailer_btn.click(edit_trailer_info, inputs=[trailer_select, seal_input, trailer_num_input], outputs=[trailer_status, trailer_select])
+		
+		# Dispatch event handler
+		dispatch_btn.click(dispatch_trailer, inputs=[trailer_select, dispatch_confirm], outputs=[dispatch_status, trailer_select])
+		
+		# Auto-populate input fields when trailer is selected
+		trailer_select.change(get_trailer_info, inputs=[trailer_select], outputs=[seal_input, trailer_num_input])
 
 
 

@@ -20,6 +20,8 @@ class Trailer:
         self.ld_number = random.randint(100000000, 999999999)
         self.trailer_number = ""
         self.seal_number = ""
+        self.dispatched = False  # Track if trailer has been dispatched
+        self.dispatch_timestamp = None  # When the trailer was dispatched
 # Shipping location and stack/tray calculations
 class Location:
     def __init__(self, name, bread_trays=0, bulk_trays=0, cake_pallets=0, orders=None):
