@@ -581,15 +581,11 @@ def load_orders_from_json_files(selected_date: str, day_number: int = None):
 	try:
 		import glob
 		
-		
-		# Look for consolidated order files first
-		consolidated_files = glob.glob("all_orders_*.json")
-		confirmed_files = glob.glob("confirmed_orders_*.json")
+		# Look for order files
 		order_files = glob.glob("orders_*.json")
 		
-		
-		# Process consolidated order files first (most preferred)
-		for file_path in consolidated_files:
+		# Process order files
+		for file_path in order_files:
 			try:
 				with open(file_path, 'r') as f:
 					file_data = json.load(f)
@@ -599,37 +595,22 @@ def load_orders_from_json_files(selected_date: str, day_number: int = None):
 				confirmed_date = metadata.get('confirmed_date', '')
 				confirmed_day = metadata.get('confirmed_day', '1')
 				
+				print(f"Checking file {file_path}: confirmed_date='{confirmed_date}', confirmed_day='{confirmed_day}'")
+				print(f"Looking for: selected_date='{selected_date}', day_number={day_number}")
 				
 				# Check if this file matches our search criteria
 				if confirmed_date == selected_date:
 					if day_number is None or str(day_number) == str(confirmed_day):
 						orders = file_data.get('orders', [])
+						print(f"Found matching file: {file_path} with {len(orders)} orders")
 						return orders
-					
+					else:
+						print(f"Date matches but day doesn't: file day='{confirmed_day}', search day={day_number}")
+				else:
+					print(f"Date doesn't match: file date='{confirmed_date}', search date='{selected_date}'")
+						
 			except Exception as e:
-				print(f"Error reading consolidated order file {file_path}: {e}")
-				continue
-		
-		# Process confirmed order files second (fallback)
-		for file_path in confirmed_files:
-			try:
-				with open(file_path, 'r') as f:
-					file_data = json.load(f)
-				
-				# Get confirmed date from metadata
-				metadata = file_data.get('metadata', {})
-				confirmed_date = metadata.get('confirmed_date', '')
-				confirmed_day = metadata.get('confirmed_day', '1')
-				
-				
-				# Check if this file matches our search criteria
-				if confirmed_date == selected_date:
-					if day_number is None or str(day_number) == str(confirmed_day):
-						orders = file_data.get('orders', [])
-						return orders
-					
-			except Exception as e:
-				print(f"Error reading confirmed order file {file_path}: {e}")
+				print(f"Error reading order file {file_path}: {e}")
 				continue
 		
 		return []
