@@ -12,6 +12,8 @@ from relay_logic import RelaySystem, Location
 order_system: OrderSystem | None = None
 relay_system: RelaySystem | None = None
 current_locations = []  # Store current locations for trailer editing
+selected_trailer_location = ""  # Store currently selected trailer location
+selected_trailer_number = 0  # Store currently selected trailer number
 
 # Initialize systems on startup
 def initialize_systems():
@@ -723,7 +725,31 @@ def create_relay(selected_date: str, day_number: str | None):
 				if trailer.dispatched and trailer.dispatch_timestamp:
 					details_lines.append(f"    ✅ Dispatched: {trailer.dispatch_timestamp}")
 
-		return "\n".join(summary_lines), "\n".join(details_lines)
+		# Create clickable trailer buttons
+		trailer_buttons = []
+		for loc in locations:
+			for trailer in loc.trailers:
+				# Create button text with status
+				if trailer.dispatched:
+					button_text = f"🟢 {loc.name} - Trailer #{trailer.number} (DISPATCHED)"
+					button_variant = "secondary"
+				else:
+					button_text = f"🔴 {loc.name} - Trailer #{trailer.number}"
+					button_variant = "primary"
+				
+				trailer_buttons.append({
+					'text': button_text,
+					'variant': button_variant,
+					'location': loc.name,
+					'trailer_num': trailer.number,
+					'seal': trailer.seal_number,
+					'trailer': trailer.trailer_number,
+					'dispatched': trailer.dispatched,
+					'ld': trailer.ld_number,
+					'stacks': trailer.stacks
+				})
+
+		return "\n".join(summary_lines), "\n".join(details_lines), trailer_buttons
 	
 	except Exception as e:
 		return f"Error creating relay: {str(e)}", ""
@@ -760,87 +786,73 @@ def get_trailer_list():
 	return trailer_list
 
 
-def get_trailer_info(trailer_selection):
-	"""Get current seal and trailer numbers for the selected trailer"""
+def get_trailer_info_by_id(trailer_identifier):
+	"""Get current seal and trailer numbers for the selected trailer by identifier"""
 	global current_locations
-	if not current_locations or not trailer_selection:
-		print(f"get_trailer_info: No locations ({current_locations is None}) or no selection ({trailer_selection})")
+	if not current_locations or not trailer_identifier:
+		print(f"get_trailer_info_by_id: No locations ({current_locations is None}) or no identifier ({trailer_identifier})")
 		return "", ""
 	
 	try:
-		print(f"get_trailer_info: Processing selection: {trailer_selection}")
-		# Parse trailer selection to find the trailer
-		# Format: "🟢/🔴 Location - Trailer #X (LD: Y) - Seal: Z, Trailer: W [Status]"
-		parts = trailer_selection.split(" - ")
-		if len(parts) < 2:
-			print(f"get_trailer_info: Invalid format, parts: {parts}")
+		print(f"get_trailer_info_by_id: Processing identifier: {trailer_identifier}")
+		# Parse trailer identifier: "LocationName_TrailerNumber"
+		if "_" not in trailer_identifier:
+			print(f"get_trailer_info_by_id: Invalid format, no underscore found")
 			return "", ""
 		
-		# Remove color emoji from location name
-		location_name = parts[0].split(" ", 1)[-1]  # Remove emoji and keep location name
-		trailer_part = parts[1]
+		location_name, trailer_num_str = trailer_identifier.split("_", 1)
+		trailer_num = int(trailer_num_str)
 		
-		print(f"get_trailer_info: Looking for location '{location_name}'")
-		
-		# Extract trailer number from "Trailer #X"
-		trailer_num = int(trailer_part.split("#")[1].split(" ")[0])
-		print(f"get_trailer_info: Looking for trailer #{trailer_num}")
+		print(f"get_trailer_info_by_id: Looking for location '{location_name}', trailer #{trailer_num}")
 		
 		# Find the location and trailer
 		for location in current_locations:
 			if location.name == location_name:
-				print(f"get_trailer_info: Found location {location_name}")
+				print(f"get_trailer_info_by_id: Found location {location_name}")
 				for trailer in location.trailers:
 					if trailer.number == trailer_num:
-						print(f"get_trailer_info: Found trailer #{trailer_num}, seal: '{trailer.seal_number}', trailer: '{trailer.trailer_number}'")
+						print(f"get_trailer_info_by_id: Found trailer #{trailer_num}, seal: '{trailer.seal_number}', trailer: '{trailer.trailer_number}'")
 						return trailer.seal_number, trailer.trailer_number
 		
-		print(f"get_trailer_info: Trailer #{trailer_num} not found at {location_name}")
+		print(f"get_trailer_info_by_id: Trailer #{trailer_num} not found at {location_name}")
 		return "", ""
 		
 	except Exception as e:
-		print(f"get_trailer_info: Error: {e}")
+		print(f"get_trailer_info_by_id: Error: {e}")
 		return "", ""
 
 
-def edit_trailer_info(trailer_selection, seal_number, trailer_number):
-	"""Edit trailer seal and trailer numbers"""
+def edit_trailer_info_by_id(trailer_identifier, seal_number, trailer_number):
+	"""Edit trailer seal and trailer numbers by identifier"""
 	global current_locations
-	if not current_locations or not trailer_selection:
-		print(f"edit_trailer_info: No locations or selection")
-		return "No trailer selected or no locations available.", get_trailer_list()
+	if not current_locations or not trailer_identifier:
+		print(f"edit_trailer_info_by_id: No locations or identifier")
+		return "No trailer identifier provided or no locations available."
 	
 	try:
-		print(f"edit_trailer_info: Processing selection: {trailer_selection}")
-		print(f"edit_trailer_info: Seal: '{seal_number}', Trailer: '{trailer_number}'")
+		print(f"edit_trailer_info_by_id: Processing identifier: {trailer_identifier}")
+		print(f"edit_trailer_info_by_id: Seal: '{seal_number}', Trailer: '{trailer_number}'")
 		
-		# Parse trailer selection to find the trailer
-		# Format: "🟢/🔴 Location - Trailer #X (LD: Y) - Seal: Z, Trailer: W [Status]"
-		parts = trailer_selection.split(" - ")
-		if len(parts) < 2:
-			print(f"edit_trailer_info: Invalid format, parts: {parts}")
-			return "Invalid trailer selection format.", get_trailer_list()
+		# Parse trailer identifier: "LocationName_TrailerNumber"
+		if "_" not in trailer_identifier:
+			print(f"edit_trailer_info_by_id: Invalid format, no underscore found")
+			return "Invalid trailer identifier format. Use: LocationName_TrailerNumber"
 		
-		# Remove color emoji from location name
-		location_name = parts[0].split(" ", 1)[-1]  # Remove emoji and keep location name
-		trailer_part = parts[1]
+		location_name, trailer_num_str = trailer_identifier.split("_", 1)
+		trailer_num = int(trailer_num_str)
 		
-		print(f"edit_trailer_info: Looking for location '{location_name}'")
-		
-		# Extract trailer number from "Trailer #X"
-		trailer_num = int(trailer_part.split("#")[1].split(" ")[0])
-		print(f"edit_trailer_info: Looking for trailer #{trailer_num}")
+		print(f"edit_trailer_info_by_id: Looking for location '{location_name}', trailer #{trailer_num}")
 		
 		# Find the location and trailer
 		for location in current_locations:
 			if location.name == location_name:
-				print(f"edit_trailer_info: Found location {location_name}")
+				print(f"edit_trailer_info_by_id: Found location {location_name}")
 				for trailer in location.trailers:
 					if trailer.number == trailer_num:
-						print(f"edit_trailer_info: Found trailer #{trailer_num}")
+						print(f"edit_trailer_info_by_id: Found trailer #{trailer_num}")
 						if trailer.dispatched:
-							print(f"edit_trailer_info: Trailer is dispatched, cannot edit")
-							return f"❌ Cannot edit Trailer #{trailer_num} at {location_name} - it has been dispatched and is final.", get_trailer_list()
+							print(f"edit_trailer_info_by_id: Trailer is dispatched, cannot edit")
+							return f"❌ Cannot edit Trailer #{trailer_num} at {location_name} - it has been dispatched and is final."
 						
 						# Update trailer information
 						old_seal = trailer.seal_number
@@ -848,32 +860,203 @@ def edit_trailer_info(trailer_selection, seal_number, trailer_number):
 						trailer.seal_number = seal_number.strip() if seal_number else ""
 						trailer.trailer_number = trailer_number.strip() if trailer_number else ""
 						
-						print(f"edit_trailer_info: Updated trailer #{trailer_num}: seal '{old_seal}' -> '{trailer.seal_number}', trailer '{old_trailer}' -> '{trailer.trailer_number}'")
-						return f"Updated Trailer #{trailer_num} at {location_name}: Seal #{trailer.seal_number}, Trailer #{trailer.trailer_number}", get_trailer_list()
+						print(f"edit_trailer_info_by_id: Updated trailer #{trailer_num}: seal '{old_seal}' -> '{trailer.seal_number}', trailer '{old_trailer}' -> '{trailer.trailer_number}'")
+						return f"✅ Updated Trailer #{trailer_num} at {location_name}: Seal #{trailer.seal_number}, Trailer #{trailer.trailer_number}"
 		
-		print(f"edit_trailer_info: Trailer #{trailer_num} not found at {location_name}")
-		return f"Trailer #{trailer_num} not found at {location_name}.", get_trailer_list()
+		print(f"edit_trailer_info_by_id: Trailer #{trailer_num} not found at {location_name}")
+		return f"❌ Trailer #{trailer_num} not found at {location_name}."
 		
 	except Exception as e:
-		print(f"edit_trailer_info: Error: {e}")
-		return f"Error updating trailer: {str(e)}", get_trailer_list()
+		print(f"edit_trailer_info_by_id: Error: {e}")
+		return f"❌ Error updating trailer: {str(e)}"
 
 
-def dispatch_trailer(trailer_selection, confirm_dispatch):
-	"""Dispatch a trailer (finalize it)"""
+def dispatch_trailer_by_id(trailer_identifier, confirm_dispatch):
+	"""Dispatch a trailer (finalize it) by identifier"""
 	global current_locations
-	if not current_locations or not trailer_selection:
-		return "No trailer selected or no locations available.", get_trailer_list()
+	if not current_locations or not trailer_identifier:
+		return "No trailer identifier provided or no locations available."
 	
 	if not confirm_dispatch:
-		return "Dispatch cancelled. Trailer remains active.", get_trailer_list()
+		return "Dispatch cancelled. Trailer remains active."
 	
 	try:
-		# Parse trailer selection to find the trailer
-		# Format: "🟢/🔴 Location - Trailer #X (LD: Y) - Seal: Z, Trailer: W [Status]"
-		parts = trailer_selection.split(" - ")
+		print(f"dispatch_trailer_by_id: Processing identifier: {trailer_identifier}")
+		
+		# Parse trailer identifier: "LocationName_TrailerNumber"
+		if "_" not in trailer_identifier:
+			return "Invalid trailer identifier format. Use: LocationName_TrailerNumber"
+		
+		location_name, trailer_num_str = trailer_identifier.split("_", 1)
+		trailer_num = int(trailer_num_str)
+		
+		print(f"dispatch_trailer_by_id: Looking for location '{location_name}', trailer #{trailer_num}")
+		
+		# Find the location and trailer
+		for location in current_locations:
+			if location.name == location_name:
+				print(f"dispatch_trailer_by_id: Found location {location_name}")
+				for trailer in location.trailers:
+					if trailer.number == trailer_num:
+						print(f"dispatch_trailer_by_id: Found trailer #{trailer_num}")
+						if trailer.dispatched:
+							return f"❌ Trailer #{trailer_num} at {location_name} is already dispatched."
+						
+						# Dispatch the trailer
+						trailer.dispatched = True
+						trailer.dispatch_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+						
+						print(f"dispatch_trailer_by_id: Dispatched trailer #{trailer_num} at {location_name}")
+						return f"✅ DISPATCHED: Trailer #{trailer_num} at {location_name} has been finalized and shipped. Seal: {trailer.seal_number}, Trailer: {trailer.trailer_number}"
+		
+		return f"❌ Trailer #{trailer_num} not found at {location_name}."
+		
+	except Exception as e:
+		print(f"dispatch_trailer_by_id: Error: {e}")
+		return f"❌ Error dispatching trailer: {str(e)}"
+
+
+def on_trailer_button_click(location_name, trailer_num):
+	"""Handle trailer button click - populate editing fields"""
+	global current_locations
+	if not current_locations:
+		return "No locations available", "", "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False)
+	
+	try:
+		print(f"on_trailer_button_click: Looking for {location_name} Trailer #{trailer_num}")
+		
+		# Find the trailer
+		for location in current_locations:
+			if location.name == location_name:
+				for trailer in location.trailers:
+					if trailer.number == trailer_num:
+						# Create display info
+						status = "DISPATCHED" if trailer.dispatched else "Active"
+						seal_display = trailer.seal_number if trailer.seal_number else "Not set"
+						trailer_display = trailer.trailer_number if trailer.trailer_number else "Not set"
+						
+						selected_info = f"Selected: {location_name} - Trailer #{trailer_num} (LD: {trailer.ld_number}, {trailer.stacks} stacks) - Status: {status}"
+						selected_info += f"\nCurrent Seal #: {seal_display} | Current Trailer #: {trailer_display}"
+						
+						# Show editing fields
+						return (
+							selected_info,
+							trailer.seal_number,
+							trailer.trailer_number,
+							gr.update(visible=True),  # seal_input
+							gr.update(visible=True),  # trailer_num_input
+							gr.update(visible=True),  # update_trailer_btn
+							gr.update(visible=True),  # dispatch_btn
+							gr.update(visible=True),  # trailer_status
+							gr.update(visible=True)   # dispatch_confirm
+						)
+		
+		return f"Trailer #{trailer_num} not found at {location_name}", "", "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False)
+		
+	except Exception as e:
+		print(f"on_trailer_button_click: Error: {e}")
+		return f"Error selecting trailer: {str(e)}", "", "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False)
+
+
+def update_trailer_from_button(location_name, trailer_num, seal_number, trailer_number):
+	"""Update trailer information from button click"""
+	global current_locations
+	if not current_locations:
+		return "No locations available"
+	
+	try:
+		print(f"update_trailer_from_button: Updating {location_name} Trailer #{trailer_num}")
+		
+		# Find the trailer
+		for location in current_locations:
+			if location.name == location_name:
+				for trailer in location.trailers:
+					if trailer.number == trailer_num:
+						if trailer.dispatched:
+							return f"❌ Cannot edit Trailer #{trailer_num} at {location_name} - it has been dispatched and is final."
+						
+						# Update trailer information
+						old_seal = trailer.seal_number
+						old_trailer = trailer.trailer_number
+						trailer.seal_number = seal_number.strip() if seal_number else ""
+						trailer.trailer_number = trailer_number.strip() if trailer_number else ""
+						
+						print(f"update_trailer_from_button: Updated trailer #{trailer_num}: seal '{old_seal}' -> '{trailer.seal_number}', trailer '{old_trailer}' -> '{trailer.trailer_number}'")
+						return f"✅ Updated Trailer #{trailer_num} at {location_name}: Seal #{trailer.seal_number}, Trailer #{trailer.trailer_number}"
+		
+		return f"❌ Trailer #{trailer_num} not found at {location_name}."
+		
+	except Exception as e:
+		print(f"update_trailer_from_button: Error: {e}")
+		return f"❌ Error updating trailer: {str(e)}"
+
+
+def dispatch_trailer_from_button(location_name, trailer_num, confirm_dispatch):
+	"""Dispatch trailer from button click"""
+	global current_locations
+	if not current_locations:
+		return "No locations available"
+	
+	if not confirm_dispatch:
+		return "Dispatch cancelled. Trailer remains active."
+	
+	try:
+		print(f"dispatch_trailer_from_button: Dispatching {location_name} Trailer #{trailer_num}")
+		
+		# Find the trailer
+		for location in current_locations:
+			if location.name == location_name:
+				for trailer in location.trailers:
+					if trailer.number == trailer_num:
+						if trailer.dispatched:
+							return f"❌ Trailer #{trailer_num} at {location_name} is already dispatched."
+						
+						# Dispatch the trailer
+						trailer.dispatched = True
+						trailer.dispatch_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+						
+						print(f"dispatch_trailer_from_button: Dispatched trailer #{trailer_num} at {location_name}")
+						return f"✅ DISPATCHED: Trailer #{trailer_num} at {location_name} has been finalized and shipped. Seal: {trailer.seal_number}, Trailer: {trailer.trailer_number}"
+		
+		return f"❌ Trailer #{trailer_num} not found at {location_name}."
+		
+	except Exception as e:
+		print(f"dispatch_trailer_from_button: Error: {e}")
+		return f"❌ Error dispatching trailer: {str(e)}"
+
+
+def populate_trailer_buttons(trailer_buttons_data):
+	"""Populate trailer buttons with data from relay creation"""
+	button_updates = []
+	
+	# Initialize all buttons as hidden
+	for i in range(12):
+		button_updates.append(gr.update(visible=False, value=""))
+	
+	# Populate buttons with trailer data
+	for i, trailer_data in enumerate(trailer_buttons_data[:12]):  # Max 12 buttons
+		button_text = trailer_data['text']
+		button_variant = trailer_data['variant']
+		button_updates[i] = gr.update(visible=True, value=button_text, variant=button_variant)
+	
+	return button_updates
+
+
+def on_trailer_button_click_from_text(button_text, button_index):
+	"""Handle trailer button click from button text"""
+	global current_locations, selected_trailer_location, selected_trailer_number
+	
+	if not button_text or not current_locations:
+		return "No trailer selected", "", "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False)
+	
+	try:
+		print(f"on_trailer_button_click_from_text: Button text: {button_text}")
+		
+		# Parse button text to extract location and trailer number
+		# Format: "🔴/🟢 Location - Trailer #X (DISPATCHED)" or "🔴/🟢 Location - Trailer #X"
+		parts = button_text.split(" - ")
 		if len(parts) < 2:
-			return "Invalid trailer selection format.", get_trailer_list()
+			return "Invalid button format", "", "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False)
 		
 		# Remove color emoji from location name
 		location_name = parts[0].split(" ", 1)[-1]  # Remove emoji and keep location name
@@ -882,24 +1065,43 @@ def dispatch_trailer(trailer_selection, confirm_dispatch):
 		# Extract trailer number from "Trailer #X"
 		trailer_num = int(trailer_part.split("#")[1].split(" ")[0])
 		
-		# Find the location and trailer
+		print(f"on_trailer_button_click_from_text: Looking for {location_name} Trailer #{trailer_num}")
+		
+		# Store selected trailer info
+		selected_trailer_location = location_name
+		selected_trailer_number = trailer_num
+		
+		# Find the trailer
 		for location in current_locations:
 			if location.name == location_name:
 				for trailer in location.trailers:
 					if trailer.number == trailer_num:
-						if trailer.dispatched:
-							return f"Trailer #{trailer_num} at {location_name} is already dispatched.", get_trailer_list()
+						# Create display info
+						status = "DISPATCHED" if trailer.dispatched else "Active"
+						seal_display = trailer.seal_number if trailer.seal_number else "Not set"
+						trailer_display = trailer.trailer_number if trailer.trailer_number else "Not set"
 						
-						# Dispatch the trailer
-						trailer.dispatched = True
-						trailer.dispatch_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+						selected_info = f"Selected: {location_name} - Trailer #{trailer_num} (LD: {trailer.ld_number}, {trailer.stacks} stacks) - Status: {status}"
+						selected_info += f"\nCurrent Seal #: {seal_display} | Current Trailer #: {trailer_display}"
 						
-						return f"✅ DISPATCHED: Trailer #{trailer_num} at {location_name} has been finalized and shipped. Seal: {trailer.seal_number}, Trailer: {trailer.trailer_number}", get_trailer_list()
+						# Show editing fields
+						return (
+							selected_info,
+							trailer.seal_number,
+							trailer.trailer_number,
+							gr.update(visible=True),  # seal_input
+							gr.update(visible=True),  # trailer_num_input
+							gr.update(visible=True),  # update_trailer_btn
+							gr.update(visible=True),  # dispatch_btn
+							gr.update(visible=True),  # trailer_status
+							gr.update(visible=True)   # dispatch_confirm
+						)
 		
-		return f"Trailer #{trailer_num} not found at {location_name}.", get_trailer_list()
+		return f"Trailer #{trailer_num} not found at {location_name}", "", "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False)
 		
 	except Exception as e:
-		return f"Error dispatching trailer: {str(e)}", get_trailer_list()
+		print(f"on_trailer_button_click_from_text: Error: {e}")
+		return f"Error selecting trailer: {str(e)}", "", "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False)
 
 
 def update_order_day_choices(selected_date):
@@ -1538,21 +1740,45 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 		details_out = gr.Textbox(label="Trailer & Order Details", lines=16)
 		
 		# Trailer editing section
-		gr.Markdown("## Edit Trailer Information")
-		trailer_select = gr.Dropdown(choices=[], label="Select Trailer to Edit", interactive=True)
-		seal_input = gr.Textbox(label="Seal Number", placeholder="Enter seal number")
-		trailer_num_input = gr.Textbox(label="Trailer Number", placeholder="Enter trailer number")
-		update_trailer_btn = gr.Button("Update Trailer Information", variant="secondary")
-		trailer_status = gr.Textbox(label="Trailer Update Status", interactive=False)
+		gr.Markdown("## Click on a Trailer to Edit")
+		gr.Markdown("**Click any trailer button below to edit its information:**")
 		
-		# Dispatch section
-		gr.Markdown("## Dispatch Trailer")
-		dispatch_confirm = gr.Checkbox(label="I confirm I want to dispatch this trailer (PERMANENT ACTION)", value=False)
-		dispatch_btn = gr.Button("Dispatch Trailer", variant="stop")
-		dispatch_status = gr.Textbox(label="Dispatch Status", interactive=False)
+		# Create a grid of trailer buttons (we'll show/hide them dynamically)
+		with gr.Row():
+			trailer_btn_1 = gr.Button("", visible=False, size="sm")
+			trailer_btn_2 = gr.Button("", visible=False, size="sm")
+			trailer_btn_3 = gr.Button("", visible=False, size="sm")
+		with gr.Row():
+			trailer_btn_4 = gr.Button("", visible=False, size="sm")
+			trailer_btn_5 = gr.Button("", visible=False, size="sm")
+			trailer_btn_6 = gr.Button("", visible=False, size="sm")
+		with gr.Row():
+			trailer_btn_7 = gr.Button("", visible=False, size="sm")
+			trailer_btn_8 = gr.Button("", visible=False, size="sm")
+			trailer_btn_9 = gr.Button("", visible=False, size="sm")
+		with gr.Row():
+			trailer_btn_10 = gr.Button("", visible=False, size="sm")
+			trailer_btn_11 = gr.Button("", visible=False, size="sm")
+			trailer_btn_12 = gr.Button("", visible=False, size="sm")
 		
-		# Refresh trailer list button
-		refresh_trailers_btn = gr.Button("Refresh Trailer List")
+		# Selected trailer info display
+		selected_trailer_info = gr.Textbox(label="Selected Trailer", interactive=False, value="No trailer selected")
+		
+		# Editing fields (hidden until trailer is selected)
+		with gr.Row():
+			seal_input = gr.Textbox(label="Seal Number", placeholder="Enter seal number", visible=False)
+			trailer_num_input = gr.Textbox(label="Trailer Number", placeholder="Enter trailer number", visible=False)
+		
+		with gr.Row():
+			update_trailer_btn = gr.Button("Update Trailer Information", variant="secondary", visible=False)
+			dispatch_btn = gr.Button("Dispatch Trailer", variant="stop", visible=False)
+		
+		# Status displays
+		trailer_status = gr.Textbox(label="Trailer Update Status", interactive=False, visible=False)
+		dispatch_status = gr.Textbox(label="Dispatch Status", interactive=False, visible=False)
+		
+		# Dispatch confirmation (hidden until trailer is selected)
+		dispatch_confirm = gr.Checkbox(label="I confirm I want to dispatch this trailer (PERMANENT ACTION)", value=False, visible=False)
 
 		def refresh_relay_orders():
 			"""Refresh the relay order dropdown with current order data"""
@@ -1562,7 +1788,8 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 		def create_relay_from_orders(selected_orders):
 			"""Create relay from selected orders loaded from JSON files"""
 			if not selected_orders:
-				return "Please select at least one order first.", "", gr.Dropdown(choices=[])
+				empty_updates = [gr.update(visible=False, value="") for _ in range(12)]
+				return "Please select at least one order first.", "", *empty_updates
 			
 			try:
 				ensure_order_system()
@@ -1578,7 +1805,8 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 						selected_order_data.append(order_info)
 				
 				if not selected_order_data:
-					return "No valid orders found for selection.", "", gr.Dropdown(choices=[])
+					empty_updates = [gr.update(visible=False, value="") for _ in range(12)]
+					return "No valid orders found for selection.", "", *empty_updates
 				
 				# Create relay from the selected orders
 				first_order_info = selected_order_data[0]
@@ -1596,26 +1824,76 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 				order_info_text += f"Date: {date_part} Day {day_part}\n"
 				order_info_text += f"Total Orders: {len(first_order_info['orders'])}"
 				
-				# Get updated trailer list for editing
-				trailer_list = get_trailer_list()
+				# Get trailer button data and populate buttons
+				# Extract orders from selected_order_data
+				all_orders = []
+				for order_info in selected_order_data:
+					all_orders.extend(order_info['orders'])
+				locations = create_relay_from_orders_data(all_orders)
+				trailer_buttons_data = []
+				for loc in locations:
+					for trailer in loc.trailers:
+						if trailer.dispatched:
+							button_text = f"🟢 {loc.name} - Trailer #{trailer.number} (DISPATCHED)"
+							button_variant = "secondary"
+						else:
+							button_text = f"🔴 {loc.name} - Trailer #{trailer.number}"
+							button_variant = "primary"
+						
+						trailer_buttons_data.append({
+							'text': button_text,
+							'variant': button_variant,
+							'location': loc.name,
+							'trailer_num': trailer.number,
+							'seal': trailer.seal_number,
+							'trailer': trailer.trailer_number,
+							'dispatched': trailer.dispatched,
+							'ld': trailer.ld_number,
+							'stacks': trailer.stacks
+						})
 				
-				return summary + order_info_text, details, gr.Dropdown(choices=trailer_list)
+				button_updates = populate_trailer_buttons(trailer_buttons_data)
+				
+				return summary + order_info_text, details, *button_updates
 				
 			except Exception as e:
-				return f"Error creating relay from orders: {str(e)}", "", gr.Dropdown(choices=[])
+				# Return empty button updates for error case
+				empty_updates = [gr.update(visible=False, value="") for _ in range(12)]
+				return f"Error creating relay from orders: {str(e)}", "", *empty_updates
 
 		refresh_orders_btn.click(refresh_relay_orders, inputs=None, outputs=[order_select])
-		create_btn.click(create_relay_from_orders, inputs=[order_select], outputs=[summary_out, details_out, trailer_select])
+		create_btn.click(create_relay_from_orders, inputs=[order_select], outputs=[
+			summary_out, details_out, 
+			trailer_btn_1, trailer_btn_2, trailer_btn_3, trailer_btn_4, trailer_btn_5, trailer_btn_6,
+			trailer_btn_7, trailer_btn_8, trailer_btn_9, trailer_btn_10, trailer_btn_11, trailer_btn_12
+		])
 		
 		# Trailer editing event handlers
-		refresh_trailers_btn.click(get_trailer_list, inputs=None, outputs=[trailer_select])
-		update_trailer_btn.click(edit_trailer_info, inputs=[trailer_select, seal_input, trailer_num_input], outputs=[trailer_status, trailer_select])
+		update_trailer_btn.click(
+			lambda seal, trailer: update_trailer_from_button(selected_trailer_location, selected_trailer_number, seal, trailer),
+			inputs=[seal_input, trailer_num_input], 
+			outputs=[trailer_status]
+		)
 		
 		# Dispatch event handler
-		dispatch_btn.click(dispatch_trailer, inputs=[trailer_select, dispatch_confirm], outputs=[dispatch_status, trailer_select])
+		dispatch_btn.click(
+			lambda confirm: dispatch_trailer_from_button(selected_trailer_location, selected_trailer_number, confirm),
+			inputs=[dispatch_confirm], 
+			outputs=[dispatch_status]
+		)
 		
-		# Auto-populate input fields when trailer is selected
-		trailer_select.change(get_trailer_info, inputs=[trailer_select], outputs=[seal_input, trailer_num_input])
+		# Trailer button click handlers
+		trailer_buttons = [trailer_btn_1, trailer_btn_2, trailer_btn_3, trailer_btn_4, trailer_btn_5, trailer_btn_6,
+		                  trailer_btn_7, trailer_btn_8, trailer_btn_9, trailer_btn_10, trailer_btn_11, trailer_btn_12]
+		
+		for i, btn in enumerate(trailer_buttons):
+			btn.click(
+				lambda btn_text, idx=i: on_trailer_button_click_from_text(btn_text, idx),
+				inputs=[btn],
+				outputs=[selected_trailer_info, seal_input, trailer_num_input, 
+				        gr.update(visible=True), gr.update(visible=True), gr.update(visible=True), 
+				        gr.update(visible=True), gr.update(visible=True), gr.update(visible=True)]
+			)
 
 
 
