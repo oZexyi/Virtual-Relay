@@ -752,7 +752,7 @@ def create_relay(selected_date: str, day_number: str | None):
 		return "\n".join(summary_lines), "\n".join(details_lines), trailer_buttons
 	
 	except Exception as e:
-		return f"Error creating relay: {str(e)}", ""
+		return f"Error creating relay: {str(e)}", "", []
 
 
 def get_trailer_list():
@@ -1817,7 +1817,7 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 				day_part = metadata['confirmed_day']
 				
 				# Create relay using the existing system
-				summary, details = create_relay(date_part, day_part)
+				summary, details, _ = create_relay(date_part, day_part)
 				
 				# Add information about selected orders
 				order_info_text = f"\n\nSelected Orders: {selected_order_display}\n"
