@@ -129,9 +129,9 @@ class OrderSystem:
             order_items = []
             for product in selected_products:
                 # Generate random units that are multiples of units_per_tray
-                # Limit to realistic demo size (max 2 trailers per location)
+                # Create varied order sizes for demo - some locations will need 2-3 trailers
                 min_trays = 1
-                max_trays = 2  # Realistic demo range - max 2 trailers per location
+                max_trays = 6  # Increased to allow for 2-3 trailers per location
                 num_trays = random.randint(min_trays, max_trays)
                 units_ordered = num_trays * product.units_per_tray
                 

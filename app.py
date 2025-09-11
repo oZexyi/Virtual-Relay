@@ -692,9 +692,9 @@ def create_relay(selected_date: str, day_number: str | None):
 		for loc in locations:
 			details_lines.append(f"\n{loc.name}:")
 			
-			# Show each trailer with LD number
+			# Show each trailer with LD number and stack count
 			for trailer in loc.trailers:
-				details_lines.append(f"  Trailer #{trailer.number} - LD: {trailer.ld_number}")
+				details_lines.append(f"  Trailer #{trailer.number} - LD: {trailer.ld_number} ({trailer.stacks} stacks)")
 
 		return "\n".join(summary_lines), "\n".join(details_lines)
 	
