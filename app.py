@@ -1025,21 +1025,73 @@ def dispatch_trailer_from_button(location_name, trailer_num, confirm_dispatch):
 		return f"❌ Error dispatching trailer: {str(e)}"
 
 
-def populate_trailer_buttons(trailer_buttons_data):
-	"""Populate trailer buttons with data from relay creation"""
-	button_updates = []
+def create_interactive_relay_display(locations):
+	"""Create interactive relay display with clickable trailer buttons organized by location"""
+	global current_locations
+	current_locations = locations
 	
-	# Initialize all buttons as hidden
-	for i in range(12):
-		button_updates.append(gr.update(visible=False, value=""))
+	# Create HTML for interactive relay display
+	html_content = "<div style='font-family: monospace; line-height: 1.6;'>"
+	html_content += "<h3>🚛 INTERACTIVE RELAY DISPLAY</h3>"
+	html_content += "<p><strong>Click any trailer button to edit its information</strong></p>"
 	
-	# Populate buttons with trailer data
-	for i, trailer_data in enumerate(trailer_buttons_data[:12]):  # Max 12 buttons
-		button_text = trailer_data['text']
-		button_variant = trailer_data['variant']
-		button_updates[i] = gr.update(visible=True, value=button_text, variant=button_variant)
+	for location in locations:
+		html_content += f"<div style='margin: 20px 0; padding: 15px; border: 2px solid #ddd; border-radius: 8px;'>"
+		html_content += f"<h4 style='margin: 0 0 10px 0; color: #333;'>{location.name}</h4>"
+		html_content += f"<p style='margin: 5px 0; color: #666;'>Total: {location.total_stacks} stacks, {len(location.trailers)} trailers</p>"
+		
+		# Create trailer buttons for this location
+		for trailer in location.trailers:
+			# Determine button styling based on dispatch status
+			if trailer.dispatched:
+				button_color = "#28a745"  # Green for dispatched
+				button_text = f"🟢 Trailer #{trailer.number} (DISPATCHED)"
+				status_text = "DISPATCHED"
+			else:
+				button_color = "#dc3545"  # Red for active
+				button_text = f"🔴 Trailer #{trailer.number}"
+				status_text = "Active"
+			
+			# Create trailer display with identifier
+			trailer_id = f"{location.name}_{trailer.number}"
+			html_content += f"""
+			<div style='margin: 8px 0; display: inline-block; margin-right: 15px; padding: 10px; 
+				border: 2px solid {button_color}; border-radius: 6px; background-color: #f8f9fa;'>
+				<div style='background-color: {button_color}; color: white; padding: 6px 10px; 
+					border-radius: 4px; font-weight: bold; text-align: center; margin-bottom: 5px;'>
+					{button_text}
+				</div>
+				<div style='font-size: 12px; color: #666; margin: 2px 0;'>
+					<strong>ID:</strong> {trailer_id}
+				</div>
+				<div style='font-size: 12px; color: #666; margin: 2px 0;'>
+					<strong>LD:</strong> {trailer.ld_number} | <strong>Stacks:</strong> {trailer.stacks} | <strong>Status:</strong> {status_text}
+				</div>
+				<div style='font-size: 11px; color: #888; margin-top: 4px; font-style: italic;'>
+					Type "{trailer_id}" below to edit
+				</div>
+			</div>
+			"""
+		
+		html_content += "</div>"
 	
-	return button_updates
+	html_content += "</div>"
+	
+	# Add JavaScript for trailer selection
+	html_content += """
+	<script>
+	function selectTrailer(location, trailerNum) {
+		// This will be handled by Gradio's JavaScript integration
+		console.log('Selected trailer:', location, trailerNum);
+		// Trigger Gradio event
+		window.dispatchEvent(new CustomEvent('trailer_selected', {
+			detail: { location: location, trailerNum: trailerNum }
+		}));
+	}
+	</script>
+	"""
+	
+	return html_content
 
 
 def on_trailer_button_click_from_text(button_text, button_index):
@@ -1736,35 +1788,23 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 		refresh_orders_btn = gr.Button("Refresh Available Orders")
 		order_select = gr.Dropdown(choices=initial_orders, label="Select Orders for Relay", interactive=True, multiselect=True)
 		create_btn = gr.Button("Create Relay from Selected Orders", variant="primary")
-		summary_out = gr.Textbox(label="Relay Summary", lines=12, value="Create orders first, then select orders to generate relay")
-		details_out = gr.Textbox(label="Trailer & Order Details", lines=16)
+		# Interactive Relay Display
+		gr.Markdown("## Interactive Relay Display")
+		gr.Markdown("**Click on any trailer below to edit its information:**")
+		
+		# Relay summary
+		summary_out = gr.Textbox(label="Relay Summary", lines=4, value="Create orders first, then select orders to generate relay")
+		
+		# Interactive relay display using HTML
+		relay_display = gr.HTML(value="<p>Create orders first, then select orders to generate interactive relay</p>")
 		
 		# Trailer editing section
-		gr.Markdown("## Click on a Trailer to Edit")
-		gr.Markdown("**Click any trailer button below to edit its information:**")
+		gr.Markdown("## Edit Trailer Information")
+		gr.Markdown("**Type the trailer identifier from the display above (e.g., Greenville_1, Anderson_2):**")
 		
-		# Create a grid of trailer buttons (we'll show/hide them dynamically)
-		with gr.Row():
-			trailer_btn_1 = gr.Button("", visible=False, size="sm")
-			trailer_btn_2 = gr.Button("", visible=False, size="sm")
-			trailer_btn_3 = gr.Button("", visible=False, size="sm")
-		with gr.Row():
-			trailer_btn_4 = gr.Button("", visible=False, size="sm")
-			trailer_btn_5 = gr.Button("", visible=False, size="sm")
-			trailer_btn_6 = gr.Button("", visible=False, size="sm")
-		with gr.Row():
-			trailer_btn_7 = gr.Button("", visible=False, size="sm")
-			trailer_btn_8 = gr.Button("", visible=False, size="sm")
-			trailer_btn_9 = gr.Button("", visible=False, size="sm")
-		with gr.Row():
-			trailer_btn_10 = gr.Button("", visible=False, size="sm")
-			trailer_btn_11 = gr.Button("", visible=False, size="sm")
-			trailer_btn_12 = gr.Button("", visible=False, size="sm")
-		
-		# Selected trailer info display
+		trailer_identifier = gr.Textbox(label="Trailer Identifier", placeholder="e.g., Greenville_1", interactive=True)
 		selected_trailer_info = gr.Textbox(label="Selected Trailer", interactive=False, value="No trailer selected")
 		
-		# Editing fields (always visible)
 		with gr.Row():
 			seal_input = gr.Textbox(label="Seal Number", placeholder="Enter seal number")
 			trailer_num_input = gr.Textbox(label="Trailer Number", placeholder="Enter trailer number")
@@ -1788,8 +1828,7 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 		def create_relay_from_orders(selected_orders):
 			"""Create relay from selected orders loaded from JSON files"""
 			if not selected_orders:
-				empty_updates = [gr.update(visible=False, value="") for _ in range(12)]
-				return "Please select at least one order first.", "", *empty_updates
+				return "Please select at least one order first.", "<p>Please select orders first</p>"
 			
 			try:
 				ensure_order_system()
@@ -1805,8 +1844,7 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 						selected_order_data.append(order_info)
 				
 				if not selected_order_data:
-					empty_updates = [gr.update(visible=False, value="") for _ in range(12)]
-					return "No valid orders found for selection.", "", *empty_updates
+					return "No valid orders found for selection.", "<p>No valid orders found</p>"
 				
 				# Create relay from the selected orders
 				first_order_info = selected_order_data[0]
@@ -1824,122 +1862,44 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 				order_info_text += f"Date: {date_part} Day {day_part}\n"
 				order_info_text += f"Total Orders: {len(first_order_info['orders'])}"
 				
-				# Get trailer button data and populate buttons
+				# Create interactive relay display
 				# Extract orders from selected_order_data
 				all_orders = []
 				for order_info in selected_order_data:
 					all_orders.extend(order_info['orders'])
 				locations = create_relay_from_orders_data(all_orders)
-				trailer_buttons_data = []
-				for loc in locations:
-					for trailer in loc.trailers:
-						if trailer.dispatched:
-							button_text = f"🟢 {loc.name} - Trailer #{trailer.number} (DISPATCHED)"
-							button_variant = "secondary"
-						else:
-							button_text = f"🔴 {loc.name} - Trailer #{trailer.number}"
-							button_variant = "primary"
-						
-						trailer_buttons_data.append({
-							'text': button_text,
-							'variant': button_variant,
-							'location': loc.name,
-							'trailer_num': trailer.number,
-							'seal': trailer.seal_number,
-							'trailer': trailer.trailer_number,
-							'dispatched': trailer.dispatched,
-							'ld': trailer.ld_number,
-							'stacks': trailer.stacks
-						})
 				
-				button_updates = populate_trailer_buttons(trailer_buttons_data)
+				# Create interactive HTML display
+				interactive_html = create_interactive_relay_display(locations)
 				
-				return summary + order_info_text, details, *button_updates
+				return summary + order_info_text, interactive_html
 				
 			except Exception as e:
-				# Return empty button updates for error case
-				empty_updates = [gr.update(visible=False, value="") for _ in range(12)]
-				return f"Error creating relay from orders: {str(e)}", "", *empty_updates
+				return f"Error creating relay from orders: {str(e)}", "<p>Error creating relay display</p>"
 
 		refresh_orders_btn.click(refresh_relay_orders, inputs=None, outputs=[order_select])
-		create_btn.click(create_relay_from_orders, inputs=[order_select], outputs=[
-			summary_out, details_out, 
-			trailer_btn_1, trailer_btn_2, trailer_btn_3, trailer_btn_4, trailer_btn_5, trailer_btn_6,
-			trailer_btn_7, trailer_btn_8, trailer_btn_9, trailer_btn_10, trailer_btn_11, trailer_btn_12
-		])
+		create_btn.click(create_relay_from_orders, inputs=[order_select], outputs=[summary_out, relay_display])
 		
 		# Trailer editing event handlers
 		update_trailer_btn.click(
-			lambda seal, trailer: update_trailer_from_button(selected_trailer_location, selected_trailer_number, seal, trailer),
-			inputs=[seal_input, trailer_num_input], 
+			edit_trailer_info_by_id,
+			inputs=[trailer_identifier, seal_input, trailer_num_input], 
 			outputs=[trailer_status]
 		)
 		
 		# Dispatch event handler
 		dispatch_btn.click(
-			lambda confirm: dispatch_trailer_from_button(selected_trailer_location, selected_trailer_number, confirm),
-			inputs=[dispatch_confirm], 
+			dispatch_trailer_by_id,
+			inputs=[trailer_identifier, dispatch_confirm], 
 			outputs=[dispatch_status]
 		)
 		
-		# Trailer button click handlers
-		trailer_buttons = [trailer_btn_1, trailer_btn_2, trailer_btn_3, trailer_btn_4, trailer_btn_5, trailer_btn_6,
-		                  trailer_btn_7, trailer_btn_8, trailer_btn_9, trailer_btn_10, trailer_btn_11, trailer_btn_12]
-		
-		# Create a function to handle trailer button clicks
-		def handle_trailer_click(button_text):
-			global selected_trailer_location, selected_trailer_number
-			
-			if not button_text or not current_locations:
-				return "No trailer selected", "", ""
-			
-			try:
-				print(f"handle_trailer_click: Button text: {button_text}")
-				
-				# Parse button text to extract location and trailer number
-				parts = button_text.split(" - ")
-				if len(parts) < 2:
-					return "Invalid button format", "", ""
-				
-				# Remove color emoji from location name
-				location_name = parts[0].split(" ", 1)[-1]
-				trailer_part = parts[1]
-				
-				# Extract trailer number from "Trailer #X"
-				trailer_num = int(trailer_part.split("#")[1].split(" ")[0])
-				
-				# Store selected trailer info
-				selected_trailer_location = location_name
-				selected_trailer_number = trailer_num
-				
-				# Find the trailer
-				for location in current_locations:
-					if location.name == location_name:
-						for trailer in location.trailers:
-							if trailer.number == trailer_num:
-								# Create display info
-								status = "DISPATCHED" if trailer.dispatched else "Active"
-								seal_display = trailer.seal_number if trailer.seal_number else "Not set"
-								trailer_display = trailer.trailer_number if trailer.trailer_number else "Not set"
-								
-								selected_info = f"Selected: {location_name} - Trailer #{trailer_num} (LD: {trailer.ld_number}, {trailer.stacks} stacks) - Status: {status}"
-								selected_info += f"\nCurrent Seal #: {seal_display} | Current Trailer #: {trailer_display}"
-								
-								return selected_info, trailer.seal_number, trailer.trailer_number
-				
-				return f"Trailer #{trailer_num} not found at {location_name}", "", ""
-				
-			except Exception as e:
-				print(f"handle_trailer_click: Error: {e}")
-				return f"Error selecting trailer: {str(e)}", "", ""
-		
-		# Add click handlers for all trailer buttons
-		for btn in trailer_buttons:
-			btn.click(
-				handle_trailer_click,
-				inputs=[btn],
-				outputs=[selected_trailer_info, seal_input, trailer_num_input]
-			)
+		# Auto-populate input fields when trailer identifier is entered
+		trailer_identifier.change(
+			get_trailer_info_by_id,
+			inputs=[trailer_identifier],
+			outputs=[selected_trailer_info, seal_input, trailer_num_input]
+		)
 
 
 
