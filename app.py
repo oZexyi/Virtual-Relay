@@ -1047,7 +1047,7 @@ def on_trailer_button_click_from_text(button_text, button_index):
 	global current_locations, selected_trailer_location, selected_trailer_number
 	
 	if not button_text or not current_locations:
-		return "No trailer selected", "", "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False)
+		return "No trailer selected", "", "", "", "", "", "", "", ""
 	
 	try:
 		print(f"on_trailer_button_click_from_text: Button text: {button_text}")
@@ -1056,7 +1056,7 @@ def on_trailer_button_click_from_text(button_text, button_index):
 		# Format: "🔴/🟢 Location - Trailer #X (DISPATCHED)" or "🔴/🟢 Location - Trailer #X"
 		parts = button_text.split(" - ")
 		if len(parts) < 2:
-			return "Invalid button format", "", "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False)
+			return "Invalid button format", "", "", "", "", "", "", "", ""
 		
 		# Remove color emoji from location name
 		location_name = parts[0].split(" ", 1)[-1]  # Remove emoji and keep location name
@@ -1084,24 +1084,24 @@ def on_trailer_button_click_from_text(button_text, button_index):
 						selected_info = f"Selected: {location_name} - Trailer #{trailer_num} (LD: {trailer.ld_number}, {trailer.stacks} stacks) - Status: {status}"
 						selected_info += f"\nCurrent Seal #: {seal_display} | Current Trailer #: {trailer_display}"
 						
-						# Show editing fields
+						# Return values for all outputs
 						return (
-							selected_info,
-							trailer.seal_number,
-							trailer.trailer_number,
-							gr.update(visible=True),  # seal_input
-							gr.update(visible=True),  # trailer_num_input
-							gr.update(visible=True),  # update_trailer_btn
-							gr.update(visible=True),  # dispatch_btn
-							gr.update(visible=True),  # trailer_status
-							gr.update(visible=True)   # dispatch_confirm
+							selected_info,  # selected_trailer_info
+							trailer.seal_number,  # seal_input
+							trailer.trailer_number,  # trailer_num_input
+							"",  # seal_input (duplicate for visibility)
+							"",  # trailer_num_input (duplicate for visibility)
+							"",  # update_trailer_btn (duplicate for visibility)
+							"",  # dispatch_btn (duplicate for visibility)
+							"",  # trailer_status (duplicate for visibility)
+							""   # dispatch_confirm (duplicate for visibility)
 						)
 		
-		return f"Trailer #{trailer_num} not found at {location_name}", "", "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False)
+		return f"Trailer #{trailer_num} not found at {location_name}", "", "", "", "", "", "", "", ""
 		
 	except Exception as e:
 		print(f"on_trailer_button_click_from_text: Error: {e}")
-		return f"Error selecting trailer: {str(e)}", "", "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False)
+		return f"Error selecting trailer: {str(e)}", "", "", "", "", "", "", "", ""
 
 
 def update_order_day_choices(selected_date):
@@ -1764,21 +1764,21 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 		# Selected trailer info display
 		selected_trailer_info = gr.Textbox(label="Selected Trailer", interactive=False, value="No trailer selected")
 		
-		# Editing fields (hidden until trailer is selected)
+		# Editing fields (always visible)
 		with gr.Row():
-			seal_input = gr.Textbox(label="Seal Number", placeholder="Enter seal number", visible=False)
-			trailer_num_input = gr.Textbox(label="Trailer Number", placeholder="Enter trailer number", visible=False)
+			seal_input = gr.Textbox(label="Seal Number", placeholder="Enter seal number")
+			trailer_num_input = gr.Textbox(label="Trailer Number", placeholder="Enter trailer number")
 		
 		with gr.Row():
-			update_trailer_btn = gr.Button("Update Trailer Information", variant="secondary", visible=False)
-			dispatch_btn = gr.Button("Dispatch Trailer", variant="stop", visible=False)
+			update_trailer_btn = gr.Button("Update Trailer Information", variant="secondary")
+			dispatch_btn = gr.Button("Dispatch Trailer", variant="stop")
 		
 		# Status displays
-		trailer_status = gr.Textbox(label="Trailer Update Status", interactive=False, visible=False)
-		dispatch_status = gr.Textbox(label="Dispatch Status", interactive=False, visible=False)
+		trailer_status = gr.Textbox(label="Trailer Update Status", interactive=False)
+		dispatch_status = gr.Textbox(label="Dispatch Status", interactive=False)
 		
-		# Dispatch confirmation (hidden until trailer is selected)
-		dispatch_confirm = gr.Checkbox(label="I confirm I want to dispatch this trailer (PERMANENT ACTION)", value=False, visible=False)
+		# Dispatch confirmation
+		dispatch_confirm = gr.Checkbox(label="I confirm I want to dispatch this trailer (PERMANENT ACTION)", value=False)
 
 		def refresh_relay_orders():
 			"""Refresh the relay order dropdown with current order data"""
@@ -1886,13 +1886,59 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 		trailer_buttons = [trailer_btn_1, trailer_btn_2, trailer_btn_3, trailer_btn_4, trailer_btn_5, trailer_btn_6,
 		                  trailer_btn_7, trailer_btn_8, trailer_btn_9, trailer_btn_10, trailer_btn_11, trailer_btn_12]
 		
-		for i, btn in enumerate(trailer_buttons):
+		# Create a function to handle trailer button clicks
+		def handle_trailer_click(button_text):
+			global selected_trailer_location, selected_trailer_number
+			
+			if not button_text or not current_locations:
+				return "No trailer selected", "", ""
+			
+			try:
+				print(f"handle_trailer_click: Button text: {button_text}")
+				
+				# Parse button text to extract location and trailer number
+				parts = button_text.split(" - ")
+				if len(parts) < 2:
+					return "Invalid button format", "", ""
+				
+				# Remove color emoji from location name
+				location_name = parts[0].split(" ", 1)[-1]
+				trailer_part = parts[1]
+				
+				# Extract trailer number from "Trailer #X"
+				trailer_num = int(trailer_part.split("#")[1].split(" ")[0])
+				
+				# Store selected trailer info
+				selected_trailer_location = location_name
+				selected_trailer_number = trailer_num
+				
+				# Find the trailer
+				for location in current_locations:
+					if location.name == location_name:
+						for trailer in location.trailers:
+							if trailer.number == trailer_num:
+								# Create display info
+								status = "DISPATCHED" if trailer.dispatched else "Active"
+								seal_display = trailer.seal_number if trailer.seal_number else "Not set"
+								trailer_display = trailer.trailer_number if trailer.trailer_number else "Not set"
+								
+								selected_info = f"Selected: {location_name} - Trailer #{trailer_num} (LD: {trailer.ld_number}, {trailer.stacks} stacks) - Status: {status}"
+								selected_info += f"\nCurrent Seal #: {seal_display} | Current Trailer #: {trailer_display}"
+								
+								return selected_info, trailer.seal_number, trailer.trailer_number
+				
+				return f"Trailer #{trailer_num} not found at {location_name}", "", ""
+				
+			except Exception as e:
+				print(f"handle_trailer_click: Error: {e}")
+				return f"Error selecting trailer: {str(e)}", "", ""
+		
+		# Add click handlers for all trailer buttons
+		for btn in trailer_buttons:
 			btn.click(
-				lambda btn_text, idx=i: on_trailer_button_click_from_text(btn_text, idx),
+				handle_trailer_click,
 				inputs=[btn],
-				outputs=[selected_trailer_info, seal_input, trailer_num_input, 
-				        gr.update(visible=True), gr.update(visible=True), gr.update(visible=True), 
-				        gr.update(visible=True), gr.update(visible=True), gr.update(visible=True)]
+				outputs=[selected_trailer_info, seal_input, trailer_num_input]
 			)
 
 
