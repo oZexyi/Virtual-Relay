@@ -118,6 +118,9 @@ class OrderSystem:
         routes = list(self.routes.values())
         products = list(self.products.values())
         
+        # Define locations that should have guaranteed large orders (2+ trailers)
+        large_order_locations = ['Greenville', 'Anderson', 'Gastonia', 'Spartanburg']
+        
         print(f"Creating orders for all {len(routes)} routes...")
         
         for route in routes:
@@ -129,9 +132,16 @@ class OrderSystem:
             order_items = []
             for product in selected_products:
                 # Generate random units that are multiples of units_per_tray
-                # Create varied order sizes for demo - some locations will need 2-3 trailers
-                min_trays = 1
-                max_trays = 6  # Increased to allow for 2-3 trailers per location
+                if route.location in large_order_locations:
+                    # Guarantee large orders for specific locations (2+ trailers)
+                    # Each product gets 8-12 trays to ensure 2+ trailers total
+                    min_trays = 8
+                    max_trays = 12
+                else:
+                    # Regular random orders for other locations
+                    min_trays = 1
+                    max_trays = 4
+                
                 num_trays = random.randint(min_trays, max_trays)
                 units_ordered = num_trays * product.units_per_tray
                 
