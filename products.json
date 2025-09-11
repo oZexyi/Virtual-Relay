@@ -57,7 +57,7 @@
   },
   {
     "name": "FLOWERS 3/4\" TEX TOAST",
-    "product_number": 10040090
+    "product_number": 10040090,
     "stack_height": 17,
     "tray_type": "bread",
     "units_per_tray": 6,
@@ -336,7 +336,7 @@
     "origin_plant": 307
   },
   {
-    "name": "TK 6 VAR MNDN"
+    "name": "TK 6 VAR MNDN",
     "product_number": 68737702,
     "stack_height": 56,
     "tray_type": "box",
@@ -414,7 +414,7 @@
     "tray_type": "bread",
     "units_per_tray": 12,
     "origin_plant": 184
-    },
+  },
   {
     "name": "WONDER BBQ",
     "product_number": 6115700,
@@ -462,7 +462,7 @@
     "tray_type": "bread",
     "units_per_tray": 8,
     "origin_plant": 191
-    },
+  },
   {
     "name": "BUNNY 2pk 48oz",
     "product_number": 10810680,
@@ -510,7 +510,7 @@
     "tray_type": "bulk",
     "units_per_tray": 36,
     "origin_plant": 191
-    },
+  },
   {
     "name": "CHESTNUT HILL 8pk HAMS",
     "product_number": 96725761,
@@ -558,7 +558,7 @@
     "tray_type": "bread",
     "units_per_tray": 12,
     "origin_plant": 191
-    },
+  },
   {
     "name": "CLOVAL 8pk HOTS",
     "product_number": 45927300,
@@ -606,7 +606,7 @@
     "tray_type": "bread",
     "units_per_tray": 6,
     "origin_plant": 124
-    },
+  },
   {
     "name": "DKB WHOLE GRAIN TS",
     "product_number": 64493240,
@@ -626,7 +626,7 @@
   {
     "name": "DKB GOOD SEED TS 2PK",
     "product_number": 64436480,
-    "stack_height": 17
+    "stack_height": 17,
     "tray_type": "bread",
     "units_per_tray": 4,
     "origin_plant": 124
@@ -634,7 +634,7 @@
   {
     "name": "DKB BLUEBERRY BAGEL",
     "product_number": 64471719,
-    "stack_height": 17
+    "stack_height": 17,
     "tray_type": "bread",
     "units_per_tray": 10,
     "origin_plant": 108
@@ -654,7 +654,7 @@
     "tray_type": "bread",
     "units_per_tray": 6,
     "origin_plant": 124
-    },
+  },
   {
     "name": "DKB EVERYTHING BAGEL",
     "product_number": 64447477,
@@ -692,7 +692,7 @@
     "product_number": 6447481,
     "stack_height": 17,
     "tray_type": "bread",
-    "units_per_tray": 12
+    "units_per_tray": 12,
     "origin_plant": 108
   },
   {
@@ -702,7 +702,7 @@
     "tray_type": "bread",
     "units_per_tray": 12,
     "origin_plant": 124
-    },
+  },
   {
     "name": "DKB POWERSEED",
     "product_number": 6449270,
@@ -748,9 +748,9 @@
     "product_number": 75225760,
     "stack_height": 20,
     "tray_type": "bread",
-    "units_per_tray": 12
+    "units_per_tray": 12,
     "origin_plant": 191
-    },
+  },
   {
     "name": "FLOWERS 100% WHOLE WHEAT OV",
     "product_number": 10020052,
@@ -2023,3 +2023,4 @@
     "units_per_tray": 8,
     "origin_plant": 181
   }
+]
