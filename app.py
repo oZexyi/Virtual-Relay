@@ -759,13 +759,10 @@ def get_trailer_list():
 	"""Get list of all trailers for editing"""
 	global current_locations
 	if not current_locations:
-		print("No current_locations available for trailer list")
 		return []
 	
-	print(f"Getting trailer list from {len(current_locations)} locations")
 	trailer_list = []
 	for location in current_locations:
-		print(f"Processing location {location.name} with {len(location.trailers)} trailers")
 		for trailer in location.trailers:
 			seal_display = trailer.seal_number if trailer.seal_number else "Not set"
 			trailer_display = trailer.trailer_number if trailer.trailer_number else "Not set"
@@ -780,9 +777,7 @@ def get_trailer_list():
 			
 			trailer_entry = f"{color} {location.name} - Trailer #{trailer.number} (LD: {trailer.ld_number}) - Seal: {seal_display}, Trailer: {trailer_display} [{status}]"
 			trailer_list.append(trailer_entry)
-			print(f"Added trailer: {trailer_entry}")
 	
-	print(f"Returning {len(trailer_list)} trailers")
 	return trailer_list
 
 
@@ -790,35 +785,26 @@ def get_trailer_info_by_id(trailer_identifier):
 	"""Get current seal and trailer numbers for the selected trailer by identifier"""
 	global current_locations
 	if not current_locations or not trailer_identifier:
-		print(f"get_trailer_info_by_id: No locations ({current_locations is None}) or no identifier ({trailer_identifier})")
 		return "", ""
 	
 	try:
-		print(f"get_trailer_info_by_id: Processing identifier: {trailer_identifier}")
 		# Parse trailer identifier: "LocationName_TrailerNumber"
 		if "_" not in trailer_identifier:
-			print(f"get_trailer_info_by_id: Invalid format, no underscore found")
 			return "", ""
 		
 		location_name, trailer_num_str = trailer_identifier.split("_", 1)
 		trailer_num = int(trailer_num_str)
 		
-		print(f"get_trailer_info_by_id: Looking for location '{location_name}', trailer #{trailer_num}")
-		
 		# Find the location and trailer
 		for location in current_locations:
 			if location.name == location_name:
-				print(f"get_trailer_info_by_id: Found location {location_name}")
 				for trailer in location.trailers:
 					if trailer.number == trailer_num:
-						print(f"get_trailer_info_by_id: Found trailer #{trailer_num}, seal: '{trailer.seal_number}', trailer: '{trailer.trailer_number}'")
 						return trailer.seal_number, trailer.trailer_number
 		
-		print(f"get_trailer_info_by_id: Trailer #{trailer_num} not found at {location_name}")
 		return "", ""
 		
 	except Exception as e:
-		print(f"get_trailer_info_by_id: Error: {e}")
 		return "", ""
 
 
@@ -826,48 +812,33 @@ def edit_trailer_info_by_id(trailer_identifier, seal_number, trailer_number):
 	"""Edit trailer seal and trailer numbers by identifier"""
 	global current_locations
 	if not current_locations or not trailer_identifier:
-		print(f"edit_trailer_info_by_id: No locations or identifier")
 		return "No trailer identifier provided or no locations available."
 	
 	try:
-		print(f"edit_trailer_info_by_id: Processing identifier: {trailer_identifier}")
-		print(f"edit_trailer_info_by_id: Seal: '{seal_number}', Trailer: '{trailer_number}'")
-		
 		# Parse trailer identifier: "LocationName_TrailerNumber"
 		if "_" not in trailer_identifier:
-			print(f"edit_trailer_info_by_id: Invalid format, no underscore found")
 			return "Invalid trailer identifier format. Use: LocationName_TrailerNumber"
 		
 		location_name, trailer_num_str = trailer_identifier.split("_", 1)
 		trailer_num = int(trailer_num_str)
 		
-		print(f"edit_trailer_info_by_id: Looking for location '{location_name}', trailer #{trailer_num}")
-		
 		# Find the location and trailer
 		for location in current_locations:
 			if location.name == location_name:
-				print(f"edit_trailer_info_by_id: Found location {location_name}")
 				for trailer in location.trailers:
 					if trailer.number == trailer_num:
-						print(f"edit_trailer_info_by_id: Found trailer #{trailer_num}")
 						if trailer.dispatched:
-							print(f"edit_trailer_info_by_id: Trailer is dispatched, cannot edit")
 							return f"❌ Cannot edit Trailer #{trailer_num} at {location_name} - it has been dispatched and is final."
 						
 						# Update trailer information
-						old_seal = trailer.seal_number
-						old_trailer = trailer.trailer_number
 						trailer.seal_number = seal_number.strip() if seal_number else ""
 						trailer.trailer_number = trailer_number.strip() if trailer_number else ""
 						
-						print(f"edit_trailer_info_by_id: Updated trailer #{trailer_num}: seal '{old_seal}' -> '{trailer.seal_number}', trailer '{old_trailer}' -> '{trailer.trailer_number}'")
 						return f"✅ Updated Trailer #{trailer_num} at {location_name}: Seal #{trailer.seal_number}, Trailer #{trailer.trailer_number}"
 		
-		print(f"edit_trailer_info_by_id: Trailer #{trailer_num} not found at {location_name}")
 		return f"❌ Trailer #{trailer_num} not found at {location_name}."
 		
 	except Exception as e:
-		print(f"edit_trailer_info_by_id: Error: {e}")
 		return f"❌ Error updating trailer: {str(e)}"
 
 
@@ -881,8 +852,6 @@ def dispatch_trailer_by_id(trailer_identifier, confirm_dispatch):
 		return "Dispatch cancelled. Trailer remains active."
 	
 	try:
-		print(f"dispatch_trailer_by_id: Processing identifier: {trailer_identifier}")
-		
 		# Parse trailer identifier: "LocationName_TrailerNumber"
 		if "_" not in trailer_identifier:
 			return "Invalid trailer identifier format. Use: LocationName_TrailerNumber"
@@ -890,15 +859,11 @@ def dispatch_trailer_by_id(trailer_identifier, confirm_dispatch):
 		location_name, trailer_num_str = trailer_identifier.split("_", 1)
 		trailer_num = int(trailer_num_str)
 		
-		print(f"dispatch_trailer_by_id: Looking for location '{location_name}', trailer #{trailer_num}")
-		
 		# Find the location and trailer
 		for location in current_locations:
 			if location.name == location_name:
-				print(f"dispatch_trailer_by_id: Found location {location_name}")
 				for trailer in location.trailers:
 					if trailer.number == trailer_num:
-						print(f"dispatch_trailer_by_id: Found trailer #{trailer_num}")
 						if trailer.dispatched:
 							return f"❌ Trailer #{trailer_num} at {location_name} is already dispatched."
 						
@@ -906,13 +871,11 @@ def dispatch_trailer_by_id(trailer_identifier, confirm_dispatch):
 						trailer.dispatched = True
 						trailer.dispatch_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 						
-						print(f"dispatch_trailer_by_id: Dispatched trailer #{trailer_num} at {location_name}")
 						return f"✅ DISPATCHED: Trailer #{trailer_num} at {location_name} has been finalized and shipped. Seal: {trailer.seal_number}, Trailer: {trailer.trailer_number}"
 		
 		return f"❌ Trailer #{trailer_num} not found at {location_name}."
 		
 	except Exception as e:
-		print(f"dispatch_trailer_by_id: Error: {e}")
 		return f"❌ Error dispatching trailer: {str(e)}"
 
 
@@ -965,8 +928,6 @@ def update_trailer_from_button(location_name, trailer_num, seal_number, trailer_
 		return "No locations available"
 	
 	try:
-		print(f"update_trailer_from_button: Updating {location_name} Trailer #{trailer_num}")
-		
 		# Find the trailer
 		for location in current_locations:
 			if location.name == location_name:
@@ -976,18 +937,14 @@ def update_trailer_from_button(location_name, trailer_num, seal_number, trailer_
 							return f"❌ Cannot edit Trailer #{trailer_num} at {location_name} - it has been dispatched and is final."
 						
 						# Update trailer information
-						old_seal = trailer.seal_number
-						old_trailer = trailer.trailer_number
 						trailer.seal_number = seal_number.strip() if seal_number else ""
 						trailer.trailer_number = trailer_number.strip() if trailer_number else ""
 						
-						print(f"update_trailer_from_button: Updated trailer #{trailer_num}: seal '{old_seal}' -> '{trailer.seal_number}', trailer '{old_trailer}' -> '{trailer.trailer_number}'")
 						return f"✅ Updated Trailer #{trailer_num} at {location_name}: Seal #{trailer.seal_number}, Trailer #{trailer.trailer_number}"
 		
 		return f"❌ Trailer #{trailer_num} not found at {location_name}."
 		
 	except Exception as e:
-		print(f"update_trailer_from_button: Error: {e}")
 		return f"❌ Error updating trailer: {str(e)}"
 
 
@@ -1001,8 +958,6 @@ def dispatch_trailer_from_button(location_name, trailer_num, confirm_dispatch):
 		return "Dispatch cancelled. Trailer remains active."
 	
 	try:
-		print(f"dispatch_trailer_from_button: Dispatching {location_name} Trailer #{trailer_num}")
-		
 		# Find the trailer
 		for location in current_locations:
 			if location.name == location_name:
@@ -1015,13 +970,11 @@ def dispatch_trailer_from_button(location_name, trailer_num, confirm_dispatch):
 						trailer.dispatched = True
 						trailer.dispatch_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 						
-						print(f"dispatch_trailer_from_button: Dispatched trailer #{trailer_num} at {location_name}")
 						return f"✅ DISPATCHED: Trailer #{trailer_num} at {location_name} has been finalized and shipped. Seal: {trailer.seal_number}, Trailer: {trailer.trailer_number}"
 		
 		return f"❌ Trailer #{trailer_num} not found at {location_name}."
 		
 	except Exception as e:
-		print(f"dispatch_trailer_from_button: Error: {e}")
 		return f"❌ Error dispatching trailer: {str(e)}"
 
 
@@ -1102,8 +1055,6 @@ def on_trailer_button_click_from_text(button_text, button_index):
 		return "No trailer selected", "", "", "", "", "", "", "", ""
 	
 	try:
-		print(f"on_trailer_button_click_from_text: Button text: {button_text}")
-		
 		# Parse button text to extract location and trailer number
 		# Format: "🔴/🟢 Location - Trailer #X (DISPATCHED)" or "🔴/🟢 Location - Trailer #X"
 		parts = button_text.split(" - ")
@@ -1116,8 +1067,6 @@ def on_trailer_button_click_from_text(button_text, button_index):
 		
 		# Extract trailer number from "Trailer #X"
 		trailer_num = int(trailer_part.split("#")[1].split(" ")[0])
-		
-		print(f"on_trailer_button_click_from_text: Looking for {location_name} Trailer #{trailer_num}")
 		
 		# Store selected trailer info
 		selected_trailer_location = location_name
@@ -1152,7 +1101,6 @@ def on_trailer_button_click_from_text(button_text, button_index):
 		return f"Trailer #{trailer_num} not found at {location_name}", "", "", "", "", "", "", "", ""
 		
 	except Exception as e:
-		print(f"on_trailer_button_click_from_text: Error: {e}")
 		return f"Error selecting trailer: {str(e)}", "", "", "", "", "", "", "", ""
 
 
