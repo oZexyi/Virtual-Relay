@@ -1748,14 +1748,14 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 		
 		# Live Trailer Data Table
 		gr.Markdown("## Live Trailer Data Table")
-		gr.Markdown("**Click on any trailer row to edit information:**")
+		gr.Markdown("**View trailer information and status:**")
 		
 		# Data table for trailers
 		trailer_data_table = gr.Dataframe(
 			headers=["Location", "Trailer #", "Seal #", "Stacks", "Status", "Dispatch Time"],
 			datatype=["str", "str", "str", "number", "str", "str"],
 			value=[],
-			interactive=True,
+			interactive=False,  # Make the entire table read-only
 			label="Trailer Data Table"
 		)
 
