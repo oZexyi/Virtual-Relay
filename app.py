@@ -1748,14 +1748,14 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 		
 		# Live Trailer Data Table
 		gr.Markdown("## Live Trailer Data Table")
-		gr.Markdown("**View trailer information and status:**")
+		gr.Markdown("**Edit Trailer # and Seal # columns only. Other columns are protected.**")
 		
 		# Data table for trailers
 		trailer_data_table = gr.Dataframe(
 			headers=["Location", "Trailer #", "Seal #", "Stacks", "Status", "Dispatch Time"],
 			datatype=["str", "str", "str", "number", "str", "str"],
 			value=[],
-			interactive=False,  # Make the entire table read-only
+			interactive=True,  # Make table interactive for editing
 			label="Trailer Data Table"
 		)
 
@@ -1799,6 +1799,57 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 					])
 			
 			return table_data
+		
+		def protect_immutable_columns(table_data):
+			"""Protect immutable columns by restoring original values"""
+			global current_locations
+			
+			if not current_locations or not table_data:
+				return table_data
+			
+			# Rebuild the table with protected columns
+			protected_table = []
+			location_index = 0
+			
+			for row in table_data:
+				if row[0].startswith("📍"):
+					# Location header row - keep as is
+					protected_table.append(row)
+				else:
+					# Trailer row - protect immutable columns
+					if location_index < len(current_locations):
+						location = current_locations[location_index]
+						# Find the trailer index
+						trailer_display = row[0]
+						if " #" in trailer_display:
+							trailer_num = int(trailer_display.split(" #")[1]) - 1
+							if 0 <= trailer_num < len(location.trailers):
+								trailer = location.trailers[trailer_num]
+								status = "🟢 Dispatched" if trailer.dispatched else "🔴 Active"
+								dispatch_time = trailer.dispatch_timestamp if trailer.dispatched else ""
+								
+								# Keep editable columns (Trailer #, Seal #) but restore immutable ones
+								protected_row = [
+									row[0],  # Location (immutable)
+									row[1],  # Trailer # (editable)
+									row[2],  # Seal # (editable)
+									trailer.stacks,  # Stacks (immutable)
+									status,  # Status (immutable)
+									dispatch_time  # Dispatch Time (immutable)
+								]
+								protected_table.append(protected_row)
+								
+								# Update the trailer data with new values
+								trailer.trailer_number = row[1]
+								trailer.seal_number = row[2]
+							else:
+								protected_table.append(row)
+						else:
+							protected_table.append(row)
+					else:
+						protected_table.append(row)
+			
+			return protected_table
 		
 
 		def create_relay_from_orders(selected_orders):
@@ -1851,6 +1902,13 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 
 		refresh_orders_btn.click(refresh_relay_orders, inputs=None, outputs=[order_select])
 		create_btn.click(create_relay_from_orders, inputs=[order_select], outputs=[trailer_data_table])
+		
+		# Protect immutable columns when table is edited
+		trailer_data_table.change(
+			protect_immutable_columns,
+			inputs=[trailer_data_table],
+			outputs=[trailer_data_table]
+		)
 
 
 
