@@ -1736,55 +1736,184 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 		get_today_btn.click(get_todays_date, inputs=None, outputs=[order_date_input])
 
 	with gr.Tab("Relay"):
-		gr.Markdown("## Relay Generation")
+		gr.Markdown("## Live Relay Management")
 		
 		# Get initial orders
 		initial_orders, _ = get_available_orders_for_relay()
 		
-		refresh_orders_btn = gr.Button("Refresh Available Orders")
-		order_select = gr.Dropdown(choices=initial_orders, label="Select Orders for Relay", interactive=True, multiselect=True)
-		create_btn = gr.Button("Create Relay from Selected Orders", variant="primary")
-		# Interactive Relay Display
-		gr.Markdown("## Interactive Relay Display")
-		gr.Markdown("**Click on any trailer below to edit its information:**")
+		with gr.Row():
+			refresh_orders_btn = gr.Button("Refresh Available Orders", variant="secondary")
+			order_select = gr.Dropdown(choices=initial_orders, label="Select Orders for Relay", interactive=True, multiselect=True)
+			create_btn = gr.Button("Create Live Relay", variant="primary")
 		
 		# Relay summary
-		summary_out = gr.Textbox(label="Relay Summary", lines=4, value="Create orders first, then select orders to generate relay")
+		summary_out = gr.Textbox(label="Relay Summary", lines=3, value="Create orders first, then select orders to generate live relay")
 		
-		# Interactive relay display using HTML
-		relay_display = gr.HTML(value="<p>Create orders first, then select orders to generate interactive relay</p>")
+		# Live Trailer Data Table
+		gr.Markdown("## Live Trailer Data Table")
+		gr.Markdown("**Click on any row to edit trailer information:**")
 		
-		# Trailer editing section
-		gr.Markdown("## Edit Trailer Information")
-		gr.Markdown("**Type the trailer identifier from the display above (e.g., Greenville_1, Anderson_2):**")
+		# Data table for trailers
+		trailer_data_table = gr.Dataframe(
+			headers=["Location", "Trailer #", "Seal #", "Stacks", "Status", "Dispatch Time"],
+			datatype=["str", "str", "str", "number", "str", "str"],
+			value=[],
+			interactive=True,
+			label="Trailer Data Table"
+		)
 		
-		trailer_identifier = gr.Textbox(label="Trailer Identifier", placeholder="e.g., Greenville_1", interactive=True)
-		selected_trailer_info = gr.Textbox(label="Selected Trailer", interactive=False, value="No trailer selected")
+		# Editor Panel
+		gr.Markdown("## Trailer Editor Panel")
 		
 		with gr.Row():
-			seal_input = gr.Textbox(label="Seal Number", placeholder="Enter seal number")
-			trailer_num_input = gr.Textbox(label="Trailer Number", placeholder="Enter trailer number")
-		
-		with gr.Row():
-			update_trailer_btn = gr.Button("Update Trailer Information", variant="secondary")
-			dispatch_btn = gr.Button("Dispatch Trailer", variant="stop")
-		
-		# Status displays
-		trailer_status = gr.Textbox(label="Trailer Update Status", interactive=False)
-		dispatch_status = gr.Textbox(label="Dispatch Status", interactive=False)
-		
-		# Dispatch confirmation
-		dispatch_confirm = gr.Checkbox(label="I confirm I want to dispatch this trailer (PERMANENT ACTION)", value=False)
+			with gr.Column(scale=1):
+				selected_trailer_info = gr.Textbox(label="Selected Trailer", interactive=False, value="No trailer selected")
+				seal_input = gr.Textbox(label="Seal Number", placeholder="Enter seal number", interactive=True)
+				trailer_num_input = gr.Textbox(label="Trailer Number", placeholder="Enter trailer number", interactive=True)
+				
+				with gr.Row():
+					save_trailer_btn = gr.Button("Save Changes", variant="primary")
+					dispatch_btn = gr.Button("Dispatch Trailer", variant="stop")
+				
+				# Status displays
+				trailer_status = gr.Textbox(label="Status", interactive=False)
+				
+				# Dispatch confirmation
+				dispatch_confirm = gr.Checkbox(label="I confirm I want to dispatch this trailer (PERMANENT ACTION)", value=False)
 
 		def refresh_relay_orders():
 			"""Refresh the relay order dropdown with current order data"""
 			orders, _ = get_available_orders_for_relay()
 			return gr.Dropdown(choices=orders)
+		
+		def create_trailer_data_table(locations):
+			"""Create data table from locations with trailers"""
+			if not locations:
+				return []
+			
+			table_data = []
+			for location in locations:
+				for trailer in location.trailers:
+					status = "🟢 Dispatched" if trailer.dispatched else "🔴 Active"
+					dispatch_time = trailer.dispatch_timestamp if trailer.dispatched else ""
+					
+					table_data.append([
+						location.name,
+						trailer.trailer_number or "",
+						trailer.seal_number or "",
+						trailer.stacks,
+						status,
+						dispatch_time
+					])
+			
+			return table_data
+		
+		def on_table_row_select(evt: gr.SelectData):
+			"""Handle row selection from data table"""
+			if evt.index[0] is None:
+				return "No trailer selected", "", "", False
+			
+			try:
+				# Get the selected row data
+				row_data = evt.value
+				if not row_data or len(row_data) < 6:
+					return "Invalid row data", "", "", False
+				
+				location_name = row_data[0]
+				trailer_num = row_data[1]
+				seal_num = row_data[2]
+				status = row_data[4]
+				
+				# Check if trailer is dispatched
+				is_dispatched = "Dispatched" in status
+				
+				# Create trailer identifier
+				trailer_id = f"{location_name}_{trailer_num}" if trailer_num else f"{location_name}_1"
+				
+				# Update global selection state
+				global selected_trailer_location, selected_trailer_number
+				selected_trailer_location = location_name
+				selected_trailer_number = trailer_num or "1"
+				
+				selected_info = f"Location: {location_name}, Trailer: {trailer_num or 'Not Set'}, Status: {status}"
+				
+				return selected_info, seal_num, trailer_num, is_dispatched
+				
+			except Exception as e:
+				return f"Error selecting trailer: {str(e)}", "", "", False
+		
+		def save_trailer_changes(seal_number, trailer_number):
+			"""Save changes to the selected trailer"""
+			global selected_trailer_location, selected_trailer_number, current_locations
+			
+			if not selected_trailer_location or not selected_trailer_number:
+				return "No trailer selected", []
+			
+			try:
+				# Find the trailer in current_locations
+				for location in current_locations:
+					if location.name == selected_trailer_location:
+						for trailer in location.trailers:
+							if trailer.trailer_number == selected_trailer_number:
+								# Check if trailer is dispatched
+								if trailer.dispatched:
+									return "Cannot edit dispatched trailer", create_trailer_data_table(current_locations)
+								
+								# Update trailer information
+								trailer.seal_number = seal_number
+								trailer.trailer_number = trailer_number
+								
+								# Update global state
+								selected_trailer_number = trailer_number
+								
+								# Refresh the data table
+								updated_table = create_trailer_data_table(current_locations)
+								return f"Trailer {trailer_number} updated successfully", updated_table
+				
+				return "Trailer not found", create_trailer_data_table(current_locations)
+				
+			except Exception as e:
+				return f"Error saving trailer: {str(e)}", create_trailer_data_table(current_locations)
+		
+		def dispatch_selected_trailer(confirm_dispatch):
+			"""Dispatch the selected trailer"""
+			global selected_trailer_location, selected_trailer_number, current_locations
+			
+			if not selected_trailer_location or not selected_trailer_number:
+				return "No trailer selected", []
+			
+			if not confirm_dispatch:
+				return "Please confirm dispatch action", create_trailer_data_table(current_locations)
+			
+			try:
+				# Find the trailer in current_locations
+				for location in current_locations:
+					if location.name == selected_trailer_location:
+						for trailer in location.trailers:
+							if trailer.trailer_number == selected_trailer_number:
+								# Check if already dispatched
+								if trailer.dispatched:
+									return "Trailer already dispatched", create_trailer_data_table(current_locations)
+								
+								# Dispatch the trailer
+								trailer.dispatched = True
+								trailer.dispatch_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+								
+								# Refresh the data table
+								updated_table = create_trailer_data_table(current_locations)
+								return f"Trailer {selected_trailer_number} dispatched successfully", updated_table
+				
+				return "Trailer not found", create_trailer_data_table(current_locations)
+				
+			except Exception as e:
+				return f"Error dispatching trailer: {str(e)}", create_trailer_data_table(current_locations)
 
 		def create_relay_from_orders(selected_orders):
-			"""Create relay from selected orders loaded from JSON files"""
+			"""Create relay from selected orders and populate data table"""
+			global current_locations
+			
 			if not selected_orders:
-				return "Please select at least one order first.", "<p>Please select orders first</p>"
+				return "Please select at least one order first.", []
 			
 			try:
 				ensure_order_system()
@@ -1800,7 +1929,7 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 						selected_order_data.append(order_info)
 				
 				if not selected_order_data:
-					return "No valid orders found for selection.", "<p>No valid orders found</p>"
+					return "No valid orders found for selection.", []
 				
 				# Create relay from the selected orders
 				first_order_info = selected_order_data[0]
@@ -1818,43 +1947,42 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 				order_info_text += f"Date: {date_part} Day {day_part}\n"
 				order_info_text += f"Total Orders: {len(first_order_info['orders'])}"
 				
-				# Create interactive relay display
-				# Extract orders from selected_order_data
+				# Extract orders from selected_order_data and create locations
 				all_orders = []
 				for order_info in selected_order_data:
 					all_orders.extend(order_info['orders'])
-				locations = create_relay_from_orders_data(all_orders)
+				current_locations = create_relay_from_orders_data(all_orders)
 				
-				# Create interactive HTML display
-				interactive_html = create_interactive_relay_display(locations)
+				# Create data table from locations
+				table_data = create_trailer_data_table(current_locations)
 				
-				return summary + order_info_text, interactive_html
+				return summary + order_info_text, table_data
 				
 			except Exception as e:
-				return f"Error creating relay from orders: {str(e)}", "<p>Error creating relay display</p>"
+				return f"Error creating relay from orders: {str(e)}", []
 
 		refresh_orders_btn.click(refresh_relay_orders, inputs=None, outputs=[order_select])
-		create_btn.click(create_relay_from_orders, inputs=[order_select], outputs=[summary_out, relay_display])
+		create_btn.click(create_relay_from_orders, inputs=[order_select], outputs=[summary_out, trailer_data_table])
 		
-		# Trailer editing event handlers
-		update_trailer_btn.click(
-			edit_trailer_info_by_id,
-			inputs=[trailer_identifier, seal_input, trailer_num_input], 
-			outputs=[trailer_status]
+		# Data table row selection event handler
+		trailer_data_table.select(
+			on_table_row_select,
+			inputs=None,
+			outputs=[selected_trailer_info, seal_input, trailer_num_input, dispatch_confirm]
 		)
 		
-		# Dispatch event handler
+		# Save trailer changes event handler
+		save_trailer_btn.click(
+			save_trailer_changes,
+			inputs=[seal_input, trailer_num_input],
+			outputs=[trailer_status, trailer_data_table]
+		)
+		
+		# Dispatch trailer event handler
 		dispatch_btn.click(
-			dispatch_trailer_by_id,
-			inputs=[trailer_identifier, dispatch_confirm], 
-			outputs=[dispatch_status]
-		)
-		
-		# Auto-populate input fields when trailer identifier is entered
-		trailer_identifier.change(
-			get_trailer_info_by_id,
-			inputs=[trailer_identifier],
-			outputs=[selected_trailer_info, seal_input, trailer_num_input]
+			dispatch_selected_trailer,
+			inputs=[dispatch_confirm],
+			outputs=[trailer_status, trailer_data_table]
 		)
 
 
