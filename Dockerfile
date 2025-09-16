@@ -1,4 +1,4 @@
-FROM python:3.10-slim
+FROM python:3.11-slim
 
 # Set working directory
 WORKDIR /app
@@ -22,4 +22,4 @@ COPY . .
 EXPOSE 7860
 
 # Run the application
-CMD ["python", "app.py"]
+CMD ["streamlit", "run", "app_streamlit.py", "--server.port=7860", "--server.address=0.0.0.0"]

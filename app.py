@@ -1930,6 +1930,16 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 if __name__ == "__main__":
 	# Get port from environment variable (Render sets this)
 	port = int(os.environ.get("PORT", 7860))
-	demo.launch(server_port=port, server_name="0.0.0.0", enable_queue=False)
+	
+	# Try to launch with Gradio, fallback to Streamlit if Gradio fails
+	try:
+		demo.launch(server_port=port, server_name="0.0.0.0", enable_queue=False)
+	except Exception as e:
+		print(f"Gradio failed: {e}")
+		print("Falling back to Streamlit...")
+		import subprocess
+		import sys
+		subprocess.run([sys.executable, "-m", "streamlit", "run", "app_streamlit.py", 
+		               "--server.port", str(port), "--server.address", "0.0.0.0"])
 
 
