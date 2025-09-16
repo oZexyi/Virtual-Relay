@@ -1930,6 +1930,6 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 if __name__ == "__main__":
 	# Get port from environment variable (Render sets this)
 	port = int(os.environ.get("PORT", 7860))
-	demo.launch(server_port=port, server_name="0.0.0.0")
+	demo.launch(server_port=port, server_name="0.0.0.0", enable_queue=False)
 
 
