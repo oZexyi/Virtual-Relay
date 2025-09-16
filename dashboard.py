@@ -3,8 +3,8 @@ import sys
 from typing import Optional
 from datetime import datetime
 
-# Add the VirtualRelaySystem directory to the path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'VirtualRelaySystem'))
+# Add the current directory to the path
+sys.path.append(os.path.dirname(__file__))
 
 # Import the relay and order systems
 from relay_logic import RelaySystem
@@ -108,7 +108,7 @@ class ShippingDepartment(Department):
         
         # Display available data files
         print(f"\nData Files:")
-        data_dir = os.path.join(os.path.dirname(__file__), '..', 'VirtualRelaySystem')
+        data_dir = os.path.dirname(__file__)
         
         files_to_check = ['products.json', 'routes.json']
         for filename in files_to_check:
@@ -232,13 +232,13 @@ class MainDashboard:
         # Check system components
         print(f"\nSystem Components:")
         relay_path = os.path.join(os.path.dirname(__file__), 'relay_logic.py')
-        orders_path = os.path.join(os.path.dirname(__file__), '..', 'VirtualRelaySystem', 'orders.py')
+        orders_path = os.path.join(os.path.dirname(__file__), 'orders.py')
         
         print(f"  Relay Logic: {'✅ Available' if os.path.exists(relay_path) else '❌ Missing'}")
         print(f"  Order System: {'✅ Available' if os.path.exists(orders_path) else '❌ Missing'}")
         
         # Check data files
-        data_dir = os.path.join(os.path.dirname(__file__), '..', 'VirtualRelaySystem')
+        data_dir = os.path.dirname(__file__)
         print(f"\nData Files:")
         for filename in ['products.json', 'routes.json']:
             filepath = os.path.join(data_dir, filename)

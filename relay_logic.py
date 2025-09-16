@@ -6,8 +6,8 @@ from typing import Dict, List, Optional
 import os
 import sys
 
-# Add the VirtualRelaySystem directory to the path to import orders
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'VirtualRelaySystem'))
+# Add the current directory to the path to import orders
+sys.path.append(os.path.dirname(__file__))
 from orders import OrderSystem, Order, OrderItem
 
 # Trailer with its associated info (stack count, overload info, etc.)
@@ -371,8 +371,8 @@ def main():
     print("Virtual Relay System - Automated")
     print("="*50)
     
-    # Check if orders file exists in VirtualRelaySystem directory
-    orders_file = os.path.join(os.path.dirname(__file__), '..', 'VirtualRelaySystem', 'orders_*.json')
+    # Check if orders file exists in current directory
+    orders_file = os.path.join(os.path.dirname(__file__), 'orders_*.json')
     
     relay_system = RelaySystem()
     relay_system.interactive_menu()
