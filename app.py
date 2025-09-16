@@ -1804,17 +1804,22 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 			"""Protect immutable columns by restoring original values"""
 			global current_locations
 			
-			# Handle pandas DataFrame input
-			if table_data is None or (hasattr(table_data, 'empty') and table_data.empty):
+			# Handle empty input
+			if table_data is None or (hasattr(table_data, '__len__') and len(table_data) == 0):
 				return table_data
 			
 			if not current_locations:
 				return table_data
 			
-			# Convert DataFrame to list if needed
+			# Convert to list if needed (handle both pandas DataFrame and regular lists)
 			if hasattr(table_data, 'values'):
+				# Pandas DataFrame
 				table_list = table_data.values.tolist()
+			elif hasattr(table_data, 'tolist'):
+				# Numpy array
+				table_list = table_data.tolist()
 			else:
+				# Regular list
 				table_list = table_data
 			
 			# Rebuild the table with protected columns
