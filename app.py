@@ -1567,13 +1567,20 @@ st.set_page_config(
     layout="wide"
 )
 
-# Initialize session state
-if 'order_system' not in st.session_state:
-    st.session_state.order_system = None
-if 'relay_system' not in st.session_state:
-    st.session_state.relay_system = None
-if 'current_locations' not in st.session_state:
-    st.session_state.current_locations = []
+# Initialize session state with proper error handling
+def initialize_session_state():
+    """Initialize session state safely"""
+    try:
+        if 'order_system' not in st.session_state:
+            st.session_state.order_system = None
+        if 'relay_system' not in st.session_state:
+            st.session_state.relay_system = None
+        if 'current_locations' not in st.session_state:
+            st.session_state.current_locations = []
+        return True
+    except Exception as e:
+        st.error(f"Error initializing session state: {str(e)}")
+        return False
 
 def initialize_streamlit_systems():
     """Initialize systems for Streamlit"""
@@ -1588,16 +1595,31 @@ def initialize_streamlit_systems():
         st.error(f"Error initializing system: {str(e)}")
         return False
 
+# Initialize session state first
+try:
+    if not initialize_session_state():
+        st.error("Failed to initialize session state. Please refresh the page.")
+        st.stop()
+except Exception as e:
+    st.error(f"Critical error initializing session state: {str(e)}")
+    st.stop()
+
 # Main Streamlit interface
 st.title("🚛 Virtual Relay System")
 st.markdown("**Manufacturing Logistics Management System**")
 
-# Initialize systems immediately
-initialize_streamlit_systems()
+# Debug information
+st.sidebar.markdown("---")
+st.sidebar.markdown("**Debug Info**")
+st.sidebar.write(f"Session state keys: {list(st.session_state.keys())}")
 
-# Check if systems are initialized
-if st.session_state.order_system is None or st.session_state.relay_system is None:
-    st.error("Failed to initialize systems. Please refresh the page.")
+# Initialize systems immediately
+try:
+    if not initialize_streamlit_systems():
+        st.error("Failed to initialize systems. Please refresh the page.")
+        st.stop()
+except Exception as e:
+    st.error(f"Critical error initializing systems: {str(e)}")
     st.stop()
 
 # Sidebar navigation
