@@ -1,6 +1,6 @@
 import os
 import json
-import gradio as gr
+import streamlit as st
 import requests
 from datetime import datetime
 
@@ -887,46 +887,23 @@ def dispatch_trailer_by_id(trailer_identifier, confirm_dispatch):
 		return f"❌ Error dispatching trailer: {str(e)}"
 
 
-def on_trailer_button_click(location_name, trailer_num):
-	"""Handle trailer button click - populate editing fields"""
+def get_trailer_info(location_name, trailer_num):
+	"""Get trailer information for Streamlit display"""
 	global current_locations
 	if not current_locations:
-		return "No locations available", "", "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False)
+		return None
 	
 	try:
-		print(f"on_trailer_button_click: Looking for {location_name} Trailer #{trailer_num}")
-		
 		# Find the trailer
 		for location in current_locations:
 			if location.name == location_name:
 				for trailer in location.trailers:
 					if trailer.number == trailer_num:
-						# Create display info
-						status = "DISPATCHED" if trailer.dispatched else "Active"
-						seal_display = trailer.seal_number if trailer.seal_number else "Not set"
-						trailer_display = trailer.trailer_number if trailer.trailer_number else "Not set"
-						
-						selected_info = f"Selected: {location_name} - Trailer #{trailer_num} (LD: {trailer.ld_number}, {trailer.stacks} stacks) - Status: {status}"
-						selected_info += f"\nCurrent Seal #: {seal_display} | Current Trailer #: {trailer_display}"
-						
-						# Show editing fields
-						return (
-							selected_info,
-							trailer.seal_number,
-							trailer.trailer_number,
-							gr.update(visible=True),  # seal_input
-							gr.update(visible=True),  # trailer_num_input
-							gr.update(visible=True),  # update_trailer_btn
-							gr.update(visible=True),  # dispatch_btn
-							gr.update(visible=True),  # trailer_status
-							gr.update(visible=True)   # dispatch_confirm
-						)
-		
-		return f"Trailer #{trailer_num} not found at {location_name}", "", "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False)
-		
+						return trailer
+		return None
 	except Exception as e:
-		print(f"on_trailer_button_click: Error: {e}")
-		return f"Error selecting trailer: {str(e)}", "", "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False)
+		print(f"get_trailer_info: Error: {e}")
+		return None
 
 
 def update_trailer_from_button(location_name, trailer_num, seal_number, trailer_number):
@@ -1112,22 +1089,20 @@ def on_trailer_button_click_from_text(button_text, button_index):
 		return f"Error selecting trailer: {str(e)}", "", "", "", "", "", "", "", ""
 
 
-def update_order_day_choices(selected_date):
-	"""Update order day dropdown when date changes"""
+def get_available_days_for_orders_streamlit(selected_date):
+	"""Get available days for orders for Streamlit"""
 	if selected_date:
-		days = get_available_days_for_date(selected_date)
-		return gr.Dropdown(choices=days, value=days[0] if days else None)
+		return get_available_days_for_date(selected_date)
 	else:
-		return gr.Dropdown(choices=[], value=None)
+		return []
 
 
-def update_relay_day_choices(selected_date):
-	"""Update relay day dropdown when date changes"""
+def get_available_days_for_date_streamlit(selected_date):
+	"""Get available days for a selected date for Streamlit"""
 	if selected_date:
-		days = get_available_days_for_date(selected_date)
-		return gr.Dropdown(choices=days, value=days[0] if days else None)
+		return get_available_days_for_date(selected_date)
 	else:
-		return gr.Dropdown(choices=[], value=None)
+		return []
 
 
 def get_order_summary_for_date_day(selected_date, selected_day):
@@ -1585,62 +1560,65 @@ def format_api_datetime_for_orders(api_datetime_str):
 		return datetime.now().strftime("%m/%d/%Y")
 
 
-with gr.Blocks(title="Virtual Relay System") as demo:
-	gr.Markdown("# Virtual Relay System — Shipping Dashboard (HF Spaces)")
-	
-	# Initialize systems on startup
-	initial_status = initialize_systems()
-	initial_dates = get_initial_dates()
-	
-	with gr.Tab("System Overview"):
-		gr.Markdown("# Virtual Relay System - Professional Demo")
-		gr.Markdown("""
-		## **Manufacturing Logistics Management System**
-		
-		This system demonstrates a comprehensive order management and relay generation platform designed for manufacturing facilities. The application showcases real-world software engineering practices including API integration, data persistence, and professional user interface design.
-		
-		### **Key Features:**
-		
-		#### **Order Management**
-		- **API-Driven Date Selection**: North Carolina timezone integration via WorldTimeAPI
-		- **Structured Day Selection**: Day 1, 2, 4, 5, or 6 workflow management
-		- **Persistent State Management**: JSON file-based confirmation system
-		- **Comprehensive Order Generation**: 235 products across all routes and locations
-		
-		#### **Relay Generation**
-		- **Automated Trailer Assignment**: 98-stack limit with automatic trailer #2, #3 creation
-		- **Location-Based Routing**: Multi-trailer support for high-volume locations
-		- **JSON Data Persistence**: Complete order-to-relay workflow with file storage
-		- **Professional Data Management**: Comprehensive metadata tracking
-		
-		#### **Technical Architecture**
-		- **Object-Oriented Design**: Clean separation of concerns with Order, Route, and Relay classes
-		- **File I/O Operations**: JSON serialization and deserialization for data persistence
-		- **Error Handling**: Comprehensive exception handling with fallback mechanisms
-		- **State Management**: Professional application state handling across sessions
-		
-		### **Software Engineering Practices Demonstrated:**
-		
-		- **API Integration**: WorldTimeAPI for real-time timezone management
-		- **Data Persistence**: JSON file storage for orders and system state
-		- **User Experience Design**: Professional interface with clear workflow guidance
-		- **Error Resilience**: Robust error handling and user feedback systems
-		- **Separation of Concerns**: Modular architecture with distinct system responsibilities
-		
-		### **System Statistics:**
-		""")
-		
-		# System status display
-		with gr.Row():
-			with gr.Column():
-				gr.Markdown("**System Status:**")
-				system_status = gr.Textbox(label="Initialization Status", value=initial_status, interactive=False)
-				gr.Markdown("**Available Order Dates:**")
-				date_dropdown_1 = gr.Dropdown(choices=initial_dates, label="Dates with Orders", interactive=False)
-			with gr.Column():
-				gr.Markdown("**System Capabilities:**")
-				gr.Markdown("""
-				- **Products**: 235 unique items
+# Streamlit app configuration
+st.set_page_config(
+    page_title="Virtual Relay System",
+    page_icon="🚛",
+    layout="wide"
+)
+
+# Initialize session state
+if 'order_system' not in st.session_state:
+    st.session_state.order_system = None
+if 'relay_system' not in st.session_state:
+    st.session_state.relay_system = None
+if 'current_locations' not in st.session_state:
+    st.session_state.current_locations = []
+
+def initialize_streamlit_systems():
+    """Initialize systems for Streamlit"""
+    try:
+        if st.session_state.order_system is None:
+            st.session_state.order_system = OrderSystem()
+        if st.session_state.relay_system is None:
+            st.session_state.relay_system = RelaySystem()
+            st.session_state.relay_system.order_system = st.session_state.order_system
+        return True
+    except Exception as e:
+        st.error(f"Error initializing system: {str(e)}")
+        return False
+
+# Main Streamlit interface
+st.title("🚛 Virtual Relay System")
+st.markdown("**Manufacturing Logistics Management System**")
+
+# Initialize systems
+if not initialize_streamlit_systems():
+    st.stop()
+
+# Sidebar navigation
+st.sidebar.title("Navigation")
+page = st.sidebar.selectbox("Choose a page", ["System Overview", "Order Management", "Relay Management"])
+
+if page == "System Overview":
+    st.header("System Overview")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("System Status")
+        if st.session_state.order_system:
+            st.success("✅ System Ready")
+            st.info(f"Products: {len(st.session_state.order_system.products)}")
+            st.info(f"Routes: {len(st.session_state.order_system.routes)}")
+            st.info(f"Locations: {len(st.session_state.order_system.get_available_locations())}")
+        else:
+            st.error("❌ System Not Ready")
+    
+    with col2:
+        st.subheader("System Capabilities")
+        st.markdown("""
+        - **Products**: 235+ unique items
 				- **Routes**: 15 delivery routes
 				- **Locations**: Multi-location support
 				- **API Integration**: North Carolina timezone
@@ -1648,298 +1626,223 @@ with gr.Blocks(title="Virtual Relay System") as demo:
 				- **Trailer Management**: 98-stack limit with overflow
 				""")
 		
-		gr.Markdown("""
-		### **Getting Started:**
-		
-		1. **Orders Tab**: Get today's date, select day, confirm selection, then generate orders
-		2. **Relay Tab**: Select generated orders to create automated relay assignments
+    st.subheader("Getting Started")
+    st.markdown("""
+    1. **Order Management**: Get today's date, select day, confirm selection, then generate orders
+    2. **Relay Management**: Select generated orders to create automated relay assignments
 		3. **Professional Workflow**: Complete order-to-relay process with persistent data storage
-		
-		---
-		
-		**Built with Python, Gradio, and WorldTimeAPI** | **Professional Manufacturing Logistics Demo**
 		""")
 		
 		# System management buttons
-		with gr.Row():
-			refresh_btn = gr.Button("Refresh System Status")
-			cleanup_btn = gr.Button("Clean Up Duplicate Files", variant="secondary")
-		
-		# Cleanup status display
-		cleanup_status = gr.Textbox(label="Cleanup Status", interactive=False, visible=False)
-		
-		refresh_btn.click(lambda: (initialize_systems(), get_initial_dates()), outputs=[system_status, date_dropdown_1])
-		cleanup_btn.click(manual_cleanup_order_files, outputs=[cleanup_status])
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("Refresh System Status"):
+            st.rerun()
+    with col2:
+        if st.button("Clean Up Duplicate Files"):
+            result = manual_cleanup_order_files()
+            st.info(result)
 
-	with gr.Tab("Orders"):
-		gr.Markdown("## Order Management")
+elif page == "Order Management":
+    st.header("Order Management")
+    
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        st.subheader("Create Orders")
+        
+        # Date input
+        order_date = st.text_input(
+            "Order Date", 
+            value=get_north_carolina_date_for_orders(),
+            placeholder="MM/DD/YYYY (e.g., 12/25/2024)",
+            help="Enter the date for the orders"
+        )
+        
+        # Day selection
+        order_day = st.selectbox(
+            "Select Day",
+            options=["1", "2", "4", "5", "6"],
+            index=0,
+            help="Select the day number for the orders"
+        )
+        
+        # Max products
+        max_products = st.number_input(
+            "Max Products per Route",
+            min_value=1,
+            max_value=235,
+            value=3,
+            help="Maximum number of products per route"
+        )
+    
+    with col2:
+        st.subheader("Actions")
+        
+        if st.button("Get Today's Date"):
+            today_date = get_north_carolina_date_for_orders()
+            st.session_state.today_date = today_date
+            st.rerun()
+        
+        if st.button("Generate Orders", type="primary"):
+            if order_date and order_day:
+                try:
+                    # Validate date format
+                    datetime.strptime(order_date, "%m/%d/%Y")
+                    
+                    # Create orders
+                    orders = st.session_state.order_system.simulate_random_orders(
+                        max_products, order_date, int(order_day)
+                    )
+                    
+                    st.success(f"✅ Created {len(orders)} orders for {order_date} Day {order_day}")
+                    
+                    # Show summary
+                    location_summary = {}
+                    for order in orders:
+                        if order.location not in location_summary:
+                            location_summary[order.location] = {'orders': 0, 'trays': 0, 'stacks': 0}
+                        location_summary[order.location]['orders'] += 1
+                        location_summary[order.location]['trays'] += order.total_trays
+                        location_summary[order.location]['stacks'] += order.total_stacks
+                    
+                    st.subheader("Order Summary by Location")
+                    for location, stats in sorted(location_summary.items()):
+                        st.write(f"**{location}**: {stats['orders']} orders, {stats['trays']} trays, {stats['stacks']} stacks")
+                    
+                except ValueError:
+                    st.error("Invalid date format. Please use MM/DD/YYYY format.")
+                except Exception as e:
+                    st.error(f"Error creating orders: {str(e)}")
+            else:
+                st.error("Please enter a date and select a day.")
+    
+    # Display existing orders
+    st.subheader("Existing Orders")
+    all_orders = st.session_state.order_system.get_all_orders()
+    
+    if all_orders:
+        st.write(f"Total Orders: {len(all_orders)}")
+        
+        # Group by date
+        orders_by_date = {}
+        for order in all_orders:
+            date_part = order.order_date.split(" ")[0]
+            if date_part not in orders_by_date:
+                orders_by_date[date_part] = []
+            orders_by_date[date_part].append(order)
+        
+        for date, orders in sorted(orders_by_date.items()):
+            with st.expander(f"Orders for {date} ({len(orders)} orders)"):
+                for order in orders:
+                    st.write(f"**{order.order_id}**: Route {order.route_id} - {order.location} ({order.total_stacks} stacks)")
+    else:
+        st.info("No orders created yet.")
 		
-		with gr.Row():
-			with gr.Column(scale=1):
-				with gr.Row():
-					order_date_input = gr.Textbox(label="Order Date", placeholder="MM/DD/YYYY (e.g., 12/25/2024)", interactive=True)
-					get_today_btn = gr.Button("Get Today's Date", variant="secondary", size="sm")
-				order_creation_day_dropdown = gr.Dropdown(
-					choices=["1", "2", "4", "5", "6"],
-					label="Select Day",
-					interactive=True,
-					value="1",
-					allow_custom_value=False
-				)
-				with gr.Row():
-					confirm_date_day_btn = gr.Button("Confirm Date & Day Selection", variant="primary")
-					clear_selection_btn = gr.Button("Clear Selection", variant="secondary")
-				date_day_status = gr.Textbox(label="Selection Status", value="Please select date and day, then confirm", interactive=False)
-				
-				simulate_btn = gr.Button("Generate Orders for Confirmed Date & Day", variant="primary")
-				sim_msg = gr.Textbox(label="Order Creation Status", interactive=False)
-		
-		
-		# 🎓 API Integration: Connect the "Get Today's Date" button to our API function
-		def get_todays_date():
-			"""Get current North Carolina date and populate the order date field"""
-			nc_date = get_north_carolina_date_for_orders()
-			return nc_date
-		
-		# Initialize UI with existing state
-		initial_date, initial_day, initial_status = initialize_order_ui_global()
-		
-		# Set initial values for UI components (only if we have valid values)
-		if initial_date:
-			order_date_input.value = initial_date
-		# Don't try to set dropdown value during initialization - let it use its default
-		if initial_status:
-			date_day_status.value = initial_status
-		
-		# Debug function to check dropdown value
-		def debug_dropdown_value(day_value):
-			# Don't return anything - this is just for debugging
-			pass
-		
-		# Function to initialize dropdown with saved day value
-		def initialize_dropdown_with_saved_day():
-			if initial_day and initial_day in ["1", "2", "4", "5", "6"]:
-				return initial_day
-			else:
-				return "1"
-		
-		
-		# Add change event to debug dropdown
-		order_creation_day_dropdown.change(debug_dropdown_value, inputs=[order_creation_day_dropdown], outputs=[])
-		
-		# Initialize dropdown with saved value after UI is loaded
-		initialized_day = initialize_dropdown_with_saved_day()
-		
-		confirm_date_day_btn.click(confirm_date_and_day_global, inputs=[order_date_input, order_creation_day_dropdown], outputs=[sim_msg, date_day_status])
-		clear_selection_btn.click(clear_selection_state_global, inputs=None, outputs=[order_date_input, order_creation_day_dropdown, date_day_status])
-		simulate_btn.click(create_orders_with_confirmed_data_global, inputs=None, outputs=[sim_msg])
-		get_today_btn.click(get_todays_date, inputs=None, outputs=[order_date_input])
+elif page == "Relay Management":
+    st.header("Relay Management")
+    
+    # Get available orders
+    all_orders = st.session_state.order_system.get_all_orders()
+    
+    if not all_orders:
+        st.warning("No orders available. Please create orders first.")
+    else:
+        # Group orders by date
+        orders_by_date = {}
+        for order in all_orders:
+            date_part = order.order_date.split(" ")[0]
+            if date_part not in orders_by_date:
+                orders_by_date[date_part] = []
+            orders_by_date[date_part].append(order)
+        
+        st.subheader("Create Relay from Orders")
+        
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            # Date selection
+            selected_date = st.selectbox(
+                "Select Date",
+                options=sorted(orders_by_date.keys()),
+                help="Select the date for relay creation"
+            )
+            
+            if selected_date:
+                orders_for_date = orders_by_date[selected_date]
+                
+                # Day selection
+                days = set()
+                for order in orders_for_date:
+                    if "Day" in order.order_date:
+                        day_part = order.order_date.split("Day ")[1].split(" ")[0]
+                        days.add(day_part)
+                
+                if days:
+                    selected_day = st.selectbox(
+                        "Select Day",
+                        options=sorted(days),
+                        help="Select the day for relay creation"
+                    )
+                else:
+                    selected_day = "1"
+        
+        with col2:
+            st.subheader("Actions")
+            
+            if st.button("Create Relay", type="primary"):
+                if selected_date:
+                    try:
+                        # Create relay
+                        locations = st.session_state.relay_system.create_automated_relay(
+                            selected_date, int(selected_day) if selected_day else None
+                        )
+                        
+                        if locations:
+                            st.session_state.current_locations = locations
+                            st.success(f"✅ Created relay with {len(locations)} locations")
+                            
+                            # Display relay summary
+                            st.subheader("Relay Summary")
+                            
+                            total_trailers = 0
+                            total_stacks = 0
+                            
+                            for location in locations:
+                                total_trailers += len(location.trailers)
+                                total_stacks += location.total_stacks
+                                
+                                with st.expander(f"{location.name} ({len(location.trailers)} trailers, {location.total_stacks} stacks)"):
+                                    for trailer in location.trailers:
+                                        status = "🟢 Dispatched" if trailer.dispatched else "🔴 Active"
+                                        st.write(f"**Trailer #{trailer.number}**: {trailer.stacks} stacks - {status}")
+                                        st.write(f"  LD: {trailer.ld_number}")
+                                        if trailer.trailer_number:
+                                            st.write(f"  Trailer #: {trailer.trailer_number}")
+                                        if trailer.seal_number:
+                                            st.write(f"  Seal #: {trailer.seal_number}")
+                            
+                            st.metric("Total Trailers", total_trailers)
+                            st.metric("Total Stacks", total_stacks)
+                        else:
+                            st.error("Failed to create relay.")
+                    except Exception as e:
+                        st.error(f"Error creating relay: {str(e)}")
+                else:
+                    st.error("Please select a date.")
+        
+        # Display existing relay
+        if st.session_state.current_locations:
+            st.subheader("Current Relay")
+            for location in st.session_state.current_locations:
+                with st.expander(f"{location.name} - {len(location.trailers)} trailers"):
+                    for trailer in location.trailers:
+                        status = "🟢 Dispatched" if trailer.dispatched else "🔴 Active"
+                        st.write(f"**Trailer #{trailer.number}**: {trailer.stacks} stacks - {status}")
 
-	with gr.Tab("Relay"):
-		gr.Markdown("## Live Relay Management")
-		
-		# Get initial orders
-		initial_orders, _ = get_available_orders_for_relay()
-		
-		with gr.Row():
-			refresh_orders_btn = gr.Button("Refresh Available Orders", variant="secondary")
-			order_select = gr.Dropdown(choices=initial_orders, label="Select Orders for Relay", interactive=True, multiselect=True)
-			create_btn = gr.Button("Create Live Relay", variant="primary")
-		
-		# Live Trailer Data Table
-		gr.Markdown("## Live Trailer Data Table")
-		gr.Markdown("**Edit Trailer # and Seal # columns only. Other columns are protected.**")
-		
-		# Data table for trailers
-		trailer_data_table = gr.Dataframe(
-			headers=["Location", "Trailer #", "Seal #", "Stacks", "Status", "Dispatch Time"],
-			datatype=["str", "str", "str", "number", "str", "str"],
-			value=[],
-			interactive=True,  # Make table interactive for editing
-			label="Trailer Data Table"
-		)
-
-		def refresh_relay_orders():
-			"""Refresh the relay order dropdown with current order data"""
-			orders, _ = get_available_orders_for_relay()
-			return gr.Dropdown(choices=orders)
-		
-		def create_trailer_data_table(locations):
-			"""Create data table from locations with trailers - cleaner format with location headers"""
-			if not locations:
-				return []
-			
-			table_data = []
-			for location in locations:
-				# Add location header row
-				table_data.append([
-					f"📍 {location.name}",
-					"",  # Empty trailer #
-					"",  # Empty seal #
-					"",  # Empty stacks
-					"",  # Empty status
-					""   # Empty dispatch time
-				])
-				
-				# Add trailers for this location
-				for i, trailer in enumerate(location.trailers, 1):
-					status = "🟢 Dispatched" if trailer.dispatched else "🔴 Active"
-					dispatch_time = trailer.dispatch_timestamp if trailer.dispatched else ""
-					
-					# Use location name with trailer number for cleaner display
-					trailer_display = f"{location.name} #{i}"
-					
-					table_data.append([
-						trailer_display,  # Location column shows "Greenville #1", "Greenville #2", etc.
-						trailer.trailer_number or "",  # Editable trailer number
-						trailer.seal_number or "",     # Editable seal number
-						trailer.stacks,                # Immutable stacks
-						status,                        # Immutable status
-						dispatch_time                  # Immutable dispatch time
-					])
-			
-			return table_data
-		
-		def protect_immutable_columns(table_data):
-			"""Protect immutable columns by restoring original values"""
-			global current_locations
-			
-			# Handle empty input
-			if table_data is None or (hasattr(table_data, '__len__') and len(table_data) == 0):
-				return table_data
-			
-			if not current_locations:
-				return table_data
-			
-			# Convert to list if needed (handle both pandas DataFrame and regular lists)
-			if hasattr(table_data, 'values'):
-				# Pandas DataFrame
-				table_list = table_data.values.tolist()
-			elif hasattr(table_data, 'tolist'):
-				# Numpy array
-				table_list = table_data.tolist()
-			else:
-				# Regular list
-				table_list = table_data
-			
-			# Rebuild the table with protected columns
-			protected_table = []
-			location_index = 0
-			
-			for row in table_list:
-				if row[0].startswith("📍"):
-					# Location header row - keep as is
-					protected_table.append(row)
-				else:
-					# Trailer row - protect immutable columns
-					if location_index < len(current_locations):
-						location = current_locations[location_index]
-						# Find the trailer index
-						trailer_display = row[0]
-						if " #" in trailer_display:
-							trailer_num = int(trailer_display.split(" #")[1]) - 1
-							if 0 <= trailer_num < len(location.trailers):
-								trailer = location.trailers[trailer_num]
-								status = "🟢 Dispatched" if trailer.dispatched else "🔴 Active"
-								dispatch_time = trailer.dispatch_timestamp if trailer.dispatched else ""
-								
-								# Keep editable columns (Trailer #, Seal #) but restore immutable ones
-								protected_row = [
-									row[0],  # Location (immutable)
-									row[1],  # Trailer # (editable)
-									row[2],  # Seal # (editable)
-									trailer.stacks,  # Stacks (immutable)
-									status,  # Status (immutable)
-									dispatch_time  # Dispatch Time (immutable)
-								]
-								protected_table.append(protected_row)
-								
-								# Update the trailer data with new values
-								trailer.trailer_number = row[1]
-								trailer.seal_number = row[2]
-							else:
-								protected_table.append(row)
-						else:
-							protected_table.append(row)
-					else:
-						protected_table.append(row)
-			
-			return protected_table
-		
-
-		def create_relay_from_orders(selected_orders):
-			"""Create relay from selected orders and populate data table"""
-			global current_locations
-			
-			if not selected_orders:
-				return []
-			
-			try:
-				ensure_order_system()
-				ensure_relay_system()
-				
-				# Get the actual order data from JSON files
-				_, order_data = get_available_orders_for_relay()
-				selected_order_data = []
-				
-				for selected_order_display in selected_orders:
-					if selected_order_display in order_data:
-						order_info = order_data[selected_order_display]
-						selected_order_data.append(order_info)
-				
-				if not selected_order_data:
-					return []
-				
-				# Create relay from the selected orders
-				first_order_info = selected_order_data[0]
-				metadata = first_order_info['metadata']
-				
-				# Use confirmed date/day from metadata
-				date_part = metadata['confirmed_date']
-				day_part = metadata['confirmed_day']
-				
-				# Create relay using the existing system
-				summary, details, _ = create_relay(date_part, day_part)
-				
-				# Extract orders from selected_order_data and create locations
-				all_orders = []
-				for order_info in selected_order_data:
-					all_orders.extend(order_info['orders'])
-				current_locations = create_relay_from_orders_data(all_orders)
-				
-				# Create data table from locations
-				table_data = create_trailer_data_table(current_locations)
-				
-				return table_data
-				
-			except Exception as e:
-				return []
-
-		refresh_orders_btn.click(refresh_relay_orders, inputs=None, outputs=[order_select])
-		create_btn.click(create_relay_from_orders, inputs=[order_select], outputs=[trailer_data_table])
-		
-		# Protect immutable columns when table is edited
-		trailer_data_table.change(
-			protect_immutable_columns,
-			inputs=[trailer_data_table],
-			outputs=[trailer_data_table]
-		)
-
-
-
+# Main execution
 if __name__ == "__main__":
-	# Get port from environment variable (Render sets this)
-	port = int(os.environ.get("PORT", 7860))
-	
-	# Try to launch with Gradio, fallback to Streamlit if Gradio fails
-	try:
-		demo.launch(server_port=port, server_name="0.0.0.0", enable_queue=False)
-	except Exception as e:
-		print(f"Gradio failed: {e}")
-		print("Falling back to Streamlit...")
-		import subprocess
-		import sys
-		subprocess.run([sys.executable, "-m", "streamlit", "run", "app_streamlit.py", 
-		               "--server.port", str(port), "--server.address", "0.0.0.0"])
+    # This will run the Streamlit app
+    pass
 
 
