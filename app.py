@@ -1592,8 +1592,12 @@ def initialize_streamlit_systems():
 st.title("🚛 Virtual Relay System")
 st.markdown("**Manufacturing Logistics Management System**")
 
-# Initialize systems
-if not initialize_streamlit_systems():
+# Initialize systems immediately
+initialize_streamlit_systems()
+
+# Check if systems are initialized
+if st.session_state.order_system is None or st.session_state.relay_system is None:
+    st.error("Failed to initialize systems. Please refresh the page.")
     st.stop()
 
 # Sidebar navigation
@@ -1607,13 +1611,10 @@ if page == "System Overview":
     
     with col1:
         st.subheader("System Status")
-        if st.session_state.order_system:
-            st.success("✅ System Ready")
-            st.info(f"Products: {len(st.session_state.order_system.products)}")
-            st.info(f"Routes: {len(st.session_state.order_system.routes)}")
-            st.info(f"Locations: {len(st.session_state.order_system.get_available_locations())}")
-        else:
-            st.error("❌ System Not Ready")
+        st.success("✅ System Ready")
+        st.info(f"Products: {len(st.session_state.order_system.products)}")
+        st.info(f"Routes: {len(st.session_state.order_system.routes)}")
+        st.info(f"Locations: {len(st.session_state.order_system.get_available_locations())}")
     
     with col2:
         st.subheader("System Capabilities")
@@ -1747,7 +1748,7 @@ elif page == "Relay Management":
     
     if not all_orders:
         st.warning("No orders available. Please create orders first.")
-    else:
+			else:
         # Group orders by date
         orders_by_date = {}
         for order in all_orders:
@@ -1826,19 +1827,19 @@ elif page == "Relay Management":
                             st.metric("Total Stacks", total_stacks)
                         else:
                             st.error("Failed to create relay.")
-                    except Exception as e:
+			except Exception as e:
                         st.error(f"Error creating relay: {str(e)}")
                 else:
                     st.error("Please select a date.")
         
-        # Display existing relay
-        if st.session_state.current_locations:
-            st.subheader("Current Relay")
-            for location in st.session_state.current_locations:
-                with st.expander(f"{location.name} - {len(location.trailers)} trailers"):
-                    for trailer in location.trailers:
-                        status = "🟢 Dispatched" if trailer.dispatched else "🔴 Active"
-                        st.write(f"**Trailer #{trailer.number}**: {trailer.stacks} stacks - {status}")
+            # Display existing relay
+            if st.session_state.current_locations:
+                st.subheader("Current Relay")
+                for location in st.session_state.current_locations:
+                    with st.expander(f"{location.name} - {len(location.trailers)} trailers"):
+                        for trailer in location.trailers:
+                            status = "🟢 Dispatched" if trailer.dispatched else "🔴 Active"
+                            st.write(f"**Trailer #{trailer.number}**: {trailer.stacks} stacks - {status}")
 
 # Main execution
 if __name__ == "__main__":
