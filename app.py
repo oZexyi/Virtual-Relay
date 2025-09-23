@@ -889,19 +889,19 @@ def dispatch_trailer_by_id(trailer_identifier, confirm_dispatch):
 
 def get_trailer_info(location_name, trailer_num):
     """Get trailer information for Streamlit display"""
-	global current_locations
-	if not current_locations:
+    global current_locations
+    if not current_locations:
         return None
-	
-	try:
-		# Find the trailer
-		for location in current_locations:
-			if location.name == location_name:
-				for trailer in location.trailers:
-					if trailer.number == trailer_num:
+    
+    try:
+        # Find the trailer
+        for location in current_locations:
+            if location.name == location_name:
+                for trailer in location.trailers:
+                    if trailer.number == trailer_num:
                         return trailer
         return None
-	except Exception as e:
+    except Exception as e:
         print(f"get_trailer_info: Error: {e}")
         return None
 
@@ -1091,17 +1091,17 @@ def on_trailer_button_click_from_text(button_text, button_index):
 
 def get_available_days_for_orders_streamlit(selected_date):
     """Get available days for orders for Streamlit"""
-	if selected_date:
+    if selected_date:
         return get_available_days_for_date(selected_date)
-	else:
+    else:
         return []
 
 
 def get_available_days_for_date_streamlit(selected_date):
     """Get available days for a selected date for Streamlit"""
-	if selected_date:
+    if selected_date:
         return get_available_days_for_date(selected_date)
-	else:
+    else:
         return []
 
 
@@ -1781,7 +1781,7 @@ elif page == "Relay Management":
     
     if not all_orders:
         st.warning("No orders available. Please create orders first.")
-			else:
+    else:
         # Group orders by date
         orders_by_date = {}
         for order in all_orders:
@@ -1860,7 +1860,7 @@ elif page == "Relay Management":
                             st.metric("Total Stacks", total_stacks)
                         else:
                             st.error("Failed to create relay.")
-			except Exception as e:
+                    except Exception as e:
                         st.error(f"Error creating relay: {str(e)}")
                 else:
                     st.error("Please select a date.")
