@@ -1567,6 +1567,15 @@ st.set_page_config(
     layout="wide"
 )
 
+# Configure Streamlit for Render deployment
+import os
+if os.getenv("RENDER"):
+    # Running on Render - configure for production
+    st.config.set_option("server.port", int(os.getenv("PORT", 10000)))
+    st.config.set_option("server.address", "0.0.0.0")
+    st.config.set_option("server.headless", True)
+    st.config.set_option("browser.gatherUsageStats", False)
+
 # Initialize session state with proper error handling
 def initialize_session_state():
     """Initialize session state safely"""
@@ -1877,6 +1886,7 @@ elif page == "Relay Management":
 # Main execution
 if __name__ == "__main__":
     # This will run the Streamlit app
+    # The app will be executed by the Streamlit server when run with 'streamlit run app.py'
     pass
 
 
