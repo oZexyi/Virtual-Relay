@@ -1710,14 +1710,8 @@ elif page == "Order Management":
             help="Select the day number for the orders"
         )
         
-        # Max products
-        max_products = st.number_input(
-            "Max Products per Route",
-            min_value=1,
-            max_value=235,
-            value=3,
-            help="Maximum number of products per route"
-        )
+        # Order system is now immutable - no max products option
+        st.info("📋 Order System: Immutable - Orders are generated randomly")
     
     with col2:
         st.subheader("Actions")
@@ -1727,18 +1721,52 @@ elif page == "Order Management":
             st.session_state.today_date = today_date
             st.rerun()
         
-        if st.button("Generate Orders", type="primary"):
+        if st.button("Generate Random Orders", type="primary"):
             if order_date and order_day:
                 try:
                     # Validate date format
                     datetime.strptime(order_date, "%m/%d/%Y")
                     
-                    # Create orders
+                    # Create orders with fixed random generation (immutable system)
                     orders = st.session_state.order_system.simulate_random_orders(
-                        max_products, order_date, int(order_day)
+                        3, order_date, int(order_day)  # Fixed to 3 products per route
                     )
                     
                     st.success(f"✅ Created {len(orders)} orders for {order_date} Day {order_day}")
+                    
+                    # Save orders to JSON file
+                    filename = f"orders_{order_date.replace('/', '-')}_Day{order_day}.json"
+                    try:
+                        # Convert orders to JSON-serializable format
+                        orders_data = []
+                        for order in orders:
+                            order_dict = {
+                                "order_id": order.order_id,
+                                "route_id": order.route_id,
+                                "location": order.location,
+                                "order_date": order.order_date,
+                                "products": [
+                                    {
+                                        "product_id": p.product_id,
+                                        "product_name": p.product_name,
+                                        "quantity": p.quantity,
+                                        "trays": p.trays,
+                                        "stacks": p.stacks
+                                    } for p in order.products
+                                ],
+                                "total_trays": order.total_trays,
+                                "total_stacks": order.total_stacks
+                            }
+                            orders_data.append(order_dict)
+                        
+                        # Save to file
+                        with open(filename, 'w') as f:
+                            json.dump(orders_data, f, indent=2)
+                        
+                        st.success(f"💾 Orders saved to: {filename}")
+                        
+                    except Exception as e:
+                        st.error(f"Error saving orders to file: {str(e)}")
                     
                     # Show summary
                     location_summary = {}
@@ -1760,12 +1788,51 @@ elif page == "Order Management":
             else:
                 st.error("Please enter a date and select a day.")
     
-    # Display existing orders
-    st.subheader("Existing Orders")
+    # Display available order files
+    st.subheader("Available Order Files")
+    
+    # Get all order JSON files
+    import glob
+    order_files = glob.glob("orders_*.json")
+    
+    if order_files:
+        st.write(f"Found {len(order_files)} order files:")
+        
+        for file in sorted(order_files):
+            with st.expander(f"📄 {file}"):
+                try:
+                    with open(file, 'r') as f:
+                        orders_data = json.load(f)
+                    
+                    st.write(f"**Orders**: {len(orders_data)}")
+                    
+                    # Show summary
+                    location_summary = {}
+                    total_stacks = 0
+                    for order in orders_data:
+                        location = order['location']
+                        stacks = order['total_stacks']
+                        if location not in location_summary:
+                            location_summary[location] = 0
+                        location_summary[location] += stacks
+                        total_stacks += stacks
+                    
+                    st.write(f"**Total Stacks**: {total_stacks}")
+                    st.write("**By Location**:")
+                    for location, stacks in sorted(location_summary.items()):
+                        st.write(f"  - {location}: {stacks} stacks")
+                        
+                except Exception as e:
+                    st.error(f"Error reading {file}: {str(e)}")
+    else:
+        st.info("No order files found. Generate some random orders first!")
+    
+    # Display existing orders (for backward compatibility)
+    st.subheader("Current Session Orders")
     all_orders = st.session_state.order_system.get_all_orders()
     
     if all_orders:
-        st.write(f"Total Orders: {len(all_orders)}")
+        st.write(f"Total Orders in Session: {len(all_orders)}")
         
         # Group by date
         orders_by_date = {}
@@ -1780,66 +1847,97 @@ elif page == "Order Management":
                 for order in orders:
                     st.write(f"**{order.order_id}**: Route {order.route_id} - {order.location} ({order.total_stacks} stacks)")
     else:
-        st.info("No orders created yet.")
+        st.info("No orders in current session.")
         
 elif page == "Relay Management":
     st.header("Relay Management")
     
-    # Get available orders
-    all_orders = st.session_state.order_system.get_all_orders()
+    # Get available order files
+    import glob
+    order_files = glob.glob("orders_*.json")
     
-    if not all_orders:
-        st.warning("No orders available. Please create orders first.")
+    if not order_files:
+        st.warning("No order files available. Please generate some random orders first.")
     else:
-        # Group orders by date
-        orders_by_date = {}
-        for order in all_orders:
-            date_part = order.order_date.split(" ")[0]
-            if date_part not in orders_by_date:
-                orders_by_date[date_part] = []
-            orders_by_date[date_part].append(order)
-        
-        st.subheader("Create Relay from Orders")
+        st.subheader("Create Relay from Order Files")
         
         col1, col2 = st.columns([2, 1])
         
         with col1:
-            # Date selection
-            selected_date = st.selectbox(
-                "Select Date",
-                options=sorted(orders_by_date.keys()),
-                help="Select the date for relay creation"
+            # Order file selection
+            selected_file = st.selectbox(
+                "Select Order File",
+                options=sorted(order_files),
+                help="Select the order file to create relay from"
             )
             
-            if selected_date:
-                orders_for_date = orders_by_date[selected_date]
-                
-                # Day selection
-                days = set()
-                for order in orders_for_date:
-                    if "Day" in order.order_date:
-                        day_part = order.order_date.split("Day ")[1].split(" ")[0]
-                        days.add(day_part)
-                
-                if days:
-                    selected_day = st.selectbox(
-                        "Select Day",
-                        options=sorted(days),
-                        help="Select the day for relay creation"
-                    )
-                else:
-                    selected_day = "1"
+            if selected_file:
+                try:
+                    # Load orders from selected file
+                    with open(selected_file, 'r') as f:
+                        orders_data = json.load(f)
+                    
+                    st.info(f"📄 Loaded {len(orders_data)} orders from {selected_file}")
+                    
+                    # Show order summary
+                    location_summary = {}
+                    total_stacks = 0
+                    for order in orders_data:
+                        location = order['location']
+                        stacks = order['total_stacks']
+                        if location not in location_summary:
+                            location_summary[location] = 0
+                        location_summary[location] += stacks
+                        total_stacks += stacks
+                    
+                    st.write(f"**Total Stacks**: {total_stacks}")
+                    st.write("**Orders by Location**:")
+                    for location, stacks in sorted(location_summary.items()):
+                        st.write(f"  - {location}: {stacks} stacks")
+                        
+                except Exception as e:
+                    st.error(f"Error loading {selected_file}: {str(e)}")
+                    selected_file = None
         
         with col2:
             st.subheader("Actions")
             
             if st.button("Create Relay", type="primary"):
-                if selected_date:
+                if selected_file:
                     try:
-                        # Create relay
-                        locations = st.session_state.relay_system.create_automated_relay(
-                            selected_date, int(selected_day) if selected_day else None
-                        )
+                        # Load orders from selected file
+                        with open(selected_file, 'r') as f:
+                            orders_data = json.load(f)
+                        
+                        # Convert JSON orders back to Order objects for relay system
+                        orders = []
+                        for order_data in orders_data:
+                            # Create Order object from JSON data
+                            order = Order(
+                                order_id=order_data['order_id'],
+                                route_id=order_data['route_id'],
+                                location=order_data['location'],
+                                order_date=order_data['order_date'],
+                                products=[]  # We'll populate this if needed
+                            )
+                            # Set totals directly
+                            order.total_trays = order_data['total_trays']
+                            order.total_stacks = order_data['total_stacks']
+                            orders.append(order)
+                        
+                        # Create relay from loaded orders using existing method
+                        # We'll use the create_automated_relay method by temporarily adding orders to the system
+                        # Clear existing orders and add the loaded ones
+                        st.session_state.order_system.orders = orders
+                        
+                        # Get the date from the first order
+                        first_order_date = orders[0].order_date.split(' ')[0] if orders else None
+                        
+                        if first_order_date:
+                            locations = st.session_state.relay_system.create_automated_relay(first_order_date)
+                        else:
+                            st.error("Could not determine date from orders")
+                            locations = None
                         
                         if locations:
                             st.session_state.current_locations = locations
@@ -1872,7 +1970,7 @@ elif page == "Relay Management":
                     except Exception as e:
                         st.error(f"Error creating relay: {str(e)}")
                 else:
-                    st.error("Please select a date.")
+                    st.error("Please select an order file.")
         
             # Display existing relay
             if st.session_state.current_locations:
