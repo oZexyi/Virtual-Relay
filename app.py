@@ -1885,8 +1885,30 @@ elif page == "Relay Management":
 
 # Main execution
 if __name__ == "__main__":
-    # This will run the Streamlit app
-    # The app will be executed by the Streamlit server when run with 'streamlit run app.py'
-    pass
+    # Check if we're running directly (not via streamlit run)
+    import sys
+    if "streamlit" not in sys.modules:
+        print("🚀 Detected direct execution - launching Streamlit...")
+        import subprocess
+        import os
+        
+        # Get port from environment
+        port = os.getenv("PORT", "10000")
+        
+        # Launch streamlit
+        cmd = [
+            sys.executable, "-m", "streamlit", "run", __file__,
+            "--server.port", port,
+            "--server.address", "0.0.0.0",
+            "--server.headless", "true",
+            "--server.enableCORS", "false",
+            "--server.enableXsrfProtection", "false"
+        ]
+        
+        print(f"Running: {' '.join(cmd)}")
+        subprocess.run(cmd)
+    else:
+        # Running via streamlit run - continue with app
+        pass
 
 

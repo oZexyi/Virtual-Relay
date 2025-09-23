@@ -1,1 +1,1 @@
-web: python launch.py
+web: python debug_render.py
