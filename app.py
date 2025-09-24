@@ -889,19 +889,19 @@ def dispatch_trailer_by_id(trailer_identifier, confirm_dispatch):
 
 def get_trailer_info(location_name, trailer_num):
     """Get trailer information for Streamlit display"""
-    global current_locations
-    if not current_locations:
+	global current_locations
+	if not current_locations:
         return None
-    
-    try:
-        # Find the trailer
-        for location in current_locations:
-            if location.name == location_name:
-                for trailer in location.trailers:
-                    if trailer.number == trailer_num:
+	
+	try:
+		# Find the trailer
+		for location in current_locations:
+			if location.name == location_name:
+				for trailer in location.trailers:
+					if trailer.number == trailer_num:
                         return trailer
         return None
-    except Exception as e:
+	except Exception as e:
         print(f"get_trailer_info: Error: {e}")
         return None
 
@@ -1091,17 +1091,17 @@ def on_trailer_button_click_from_text(button_text, button_index):
 
 def get_available_days_for_orders_streamlit(selected_date):
     """Get available days for orders for Streamlit"""
-    if selected_date:
+	if selected_date:
         return get_available_days_for_date(selected_date)
-    else:
+	else:
         return []
 
 
 def get_available_days_for_date_streamlit(selected_date):
     """Get available days for a selected date for Streamlit"""
-    if selected_date:
+	if selected_date:
         return get_available_days_for_date(selected_date)
-    else:
+	else:
         return []
 
 
@@ -1727,6 +1727,11 @@ elif page == "Order Management":
                     # Validate date format
                     datetime.strptime(order_date, "%m/%d/%Y")
                     
+                    # Debug: Show system info
+                    total_routes = len(st.session_state.order_system.routes)
+                    total_locations = len(st.session_state.order_system.get_available_locations())
+                    st.info(f"🔍 System has {total_routes} routes across {total_locations} locations")
+                    
                     # Create orders with fixed random generation (immutable system)
                     orders = st.session_state.order_system.simulate_random_orders(
                         3, order_date, int(order_day)  # Fixed to 3 products per route
@@ -1734,11 +1739,21 @@ elif page == "Order Management":
                     
                     st.success(f"✅ Created {len(orders)} orders for {order_date} Day {order_day}")
                     
-                    # Save orders to JSON file
-                    filename = f"orders_{order_date.replace('/', '-')}_Day{order_day}.json"
+                    # Debug: Show order distribution
+                    locations_in_orders = set(order.location for order in orders)
+                    st.info(f"📊 Orders created for {len(locations_in_orders)} locations: {', '.join(sorted(locations_in_orders))}")
+                    
+                    # Save orders to single JSON file
+                    filename = "orders.json"
                     try:
-                        # Convert orders to JSON-serializable format
-                        orders_data = []
+                        # Load existing orders from file
+                        existing_orders = []
+                        if os.path.exists(filename):
+                            with open(filename, 'r') as f:
+                                existing_orders = json.load(f)
+                        
+                        # Convert new orders to JSON-serializable format
+                        new_orders_data = []
                         for order in orders:
                             order_dict = {
                                 "order_id": order.order_id,
@@ -1760,13 +1775,16 @@ elif page == "Order Management":
                                 "total_trays": order.total_trays,
                                 "total_stacks": order.total_stacks
                             }
-                            orders_data.append(order_dict)
+                            new_orders_data.append(order_dict)
                         
-                        # Save to file
+                        # Combine existing and new orders
+                        all_orders = existing_orders + new_orders_data
+                        
+                        # Save all orders to single file
                         with open(filename, 'w') as f:
-                            json.dump(orders_data, f, indent=2)
+                            json.dump(all_orders, f, indent=2)
                         
-                        st.success(f"💾 Orders saved to: {filename}")
+                        st.success(f"💾 {len(new_orders_data)} new orders added to {filename} (Total: {len(all_orders)} orders)")
                         
                     except Exception as e:
                         st.error(f"Error saving orders to file: {str(e)}")
@@ -1791,44 +1809,50 @@ elif page == "Order Management":
             else:
                 st.error("Please enter a date and select a day.")
     
-    # Display available order files
-    st.subheader("Available Order Files")
+    # Display order data from single JSON file
+    st.subheader("Order Data")
     
-    # Get all order JSON files
-    import glob
-    order_files = glob.glob("orders_*.json")
-    
-    if order_files:
-        st.write(f"Found {len(order_files)} order files:")
-        
-        for file in sorted(order_files):
-            with st.expander(f"📄 {file}"):
-                try:
-                    with open(file, 'r') as f:
-                        orders_data = json.load(f)
-                    
-                    st.write(f"**Orders**: {len(orders_data)}")
-                    
-                    # Show summary
-                    location_summary = {}
-                    total_stacks = 0
-                    for order in orders_data:
-                        location = order['location']
-                        stacks = order['total_stacks']
-                        if location not in location_summary:
-                            location_summary[location] = 0
-                        location_summary[location] += stacks
-                        total_stacks += stacks
-                    
-                    st.write(f"**Total Stacks**: {total_stacks}")
-                    st.write("**By Location**:")
-                    for location, stacks in sorted(location_summary.items()):
-                        st.write(f"  - {location}: {stacks} stacks")
-                        
-                except Exception as e:
-                    st.error(f"Error reading {file}: {str(e)}")
+    # Check for single orders.json file
+    if os.path.exists("orders.json"):
+        try:
+            with open("orders.json", 'r') as f:
+                orders_data = json.load(f)
+            
+            if orders_data:
+                st.write(f"📄 **orders.json** - {len(orders_data)} total orders")
+                
+                # Show summary by location
+                location_summary = {}
+                total_stacks = 0
+                total_trays = 0
+                for order in orders_data:
+                    location = order['location']
+                    stacks = order['total_stacks']
+                    trays = order['total_trays']
+                    if location not in location_summary:
+                        location_summary[location] = {'orders': 0, 'stacks': 0, 'trays': 0}
+                    location_summary[location]['orders'] += 1
+                    location_summary[location]['stacks'] += stacks
+                    location_summary[location]['trays'] += trays
+                    total_stacks += stacks
+                    total_trays += trays
+                
+                st.write(f"**Total**: {total_stacks} stacks, {total_trays} trays")
+                st.write("**Orders by Location**:")
+                
+                for location, stats in sorted(location_summary.items()):
+                    with st.expander(f"{location} - {stats['orders']} orders, {stats['stacks']} stacks, {stats['trays']} trays"):
+                        # Show individual orders for this location
+                        location_orders = [o for o in orders_data if o['location'] == location]
+                        for order in location_orders:
+                            st.write(f"  • {order['order_id']}: Route {order['route_id']} - {order['total_stacks']} stacks")
+            else:
+                st.info("orders.json exists but is empty. Generate some random orders first!")
+                
+        except Exception as e:
+            st.error(f"Error reading orders.json: {str(e)}")
     else:
-        st.info("No order files found. Generate some random orders first!")
+        st.info("No orders.json file found. Generate some random orders first!")
     
     # Display existing orders (for backward compatibility)
     st.subheader("Current Session Orders")
@@ -1849,68 +1873,62 @@ elif page == "Order Management":
             with st.expander(f"Orders for {date} ({len(orders)} orders)"):
                 for order in orders:
                     st.write(f"**{order.order_id}**: Route {order.route_id} - {order.location} ({order.total_stacks} stacks)")
-    else:
+			else:
         st.info("No orders in current session.")
         
 elif page == "Relay Management":
     st.header("Relay Management")
     
-    # Get available order files
-    import glob
-    order_files = glob.glob("orders_*.json")
-    
-    if not order_files:
-        st.warning("No order files available. Please generate some random orders first.")
-    else:
-        st.subheader("Create Relay from Order Files")
+    # Check for single orders.json file
+    if not os.path.exists("orders.json"):
+        st.warning("No orders.json file available. Please generate some random orders first.")
+				else:
+        st.subheader("Create Relay from Orders")
         
         col1, col2 = st.columns([2, 1])
         
         with col1:
-            # Order file selection
-            selected_file = st.selectbox(
-                "Select Order File",
-                options=sorted(order_files),
-                help="Select the order file to create relay from"
-            )
-            
-            if selected_file:
-                try:
-                    # Load orders from selected file
-                    with open(selected_file, 'r') as f:
-                        orders_data = json.load(f)
-                    
-                    st.info(f"📄 Loaded {len(orders_data)} orders from {selected_file}")
+            try:
+                # Load orders from single file
+                with open("orders.json", 'r') as f:
+                    orders_data = json.load(f)
+                
+                if not orders_data:
+                    st.warning("orders.json is empty. Please generate some random orders first.")
+							else:
+                    st.info(f"📄 Loaded {len(orders_data)} orders from orders.json")
                     
                     # Show order summary
                     location_summary = {}
                     total_stacks = 0
+                    total_trays = 0
                     for order in orders_data:
                         location = order['location']
                         stacks = order['total_stacks']
+                        trays = order['total_trays']
                         if location not in location_summary:
-                            location_summary[location] = 0
-                        location_summary[location] += stacks
+                            location_summary[location] = {'orders': 0, 'stacks': 0, 'trays': 0}
+                        location_summary[location]['orders'] += 1
+                        location_summary[location]['stacks'] += stacks
+                        location_summary[location]['trays'] += trays
                         total_stacks += stacks
+                        total_trays += trays
                     
-                    st.write(f"**Total Stacks**: {total_stacks}")
+                    st.write(f"**Total**: {total_stacks} stacks, {total_trays} trays")
                     st.write("**Orders by Location**:")
-                    for location, stacks in sorted(location_summary.items()):
-                        st.write(f"  - {location}: {stacks} stacks")
+                    for location, stats in sorted(location_summary.items()):
+                        st.write(f"  - {location}: {stats['orders']} orders, {stats['stacks']} stacks, {stats['trays']} trays")
                         
-                except Exception as e:
-                    st.error(f"Error loading {selected_file}: {str(e)}")
-                    selected_file = None
+            except Exception as e:
+                st.error(f"Error loading orders.json: {str(e)}")
+                orders_data = None
         
         with col2:
             st.subheader("Actions")
             
             if st.button("Create Relay", type="primary"):
-                if selected_file:
+                if orders_data:
                     try:
-                        # Load orders from selected file
-                        with open(selected_file, 'r') as f:
-                            orders_data = json.load(f)
                         
                         # Convert JSON orders back to Order objects for relay system
                         orders = []
@@ -2051,10 +2069,10 @@ elif page == "Relay Management":
                             st.metric("Total Stacks", total_stacks)
                         else:
                             st.error("Failed to create relay.")
-                    except Exception as e:
+	except Exception as e:
                         st.error(f"Error creating relay: {str(e)}")
                 else:
-                    st.error("Please select an order file.")
+                    st.error("No orders available. Please generate some random orders first.")
         
             # Display existing relay
             if st.session_state.current_locations:
@@ -2138,7 +2156,7 @@ elif page == "Relay Management":
 # Main execution
 if __name__ == "__main__":
     # Check if we're running directly (not via streamlit run)
-    import sys
+		import sys
     if "streamlit" not in sys.modules:
         print("🚀 Detected direct execution - launching Streamlit...")
         import subprocess
