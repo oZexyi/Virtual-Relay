@@ -1945,7 +1945,11 @@ elif page == "Relay Management":
                         # Create relay from loaded orders using existing method
                         # We'll use the create_automated_relay method by temporarily adding orders to the system
                         # Clear existing orders and add the loaded ones
-                        st.session_state.order_system.orders = orders
+                        # Convert list of orders back to dictionary format
+                        orders_dict = {}
+                        for order in orders:
+                            orders_dict[order.order_id] = order
+                        st.session_state.order_system.orders = orders_dict
                         
                         # Get the date from the first order
                         first_order_date = orders[0].order_date.split(' ')[0] if orders else None
@@ -1973,12 +1977,75 @@ elif page == "Relay Management":
                                 with st.expander(f"{location.name} ({len(location.trailers)} trailers, {location.total_stacks} stacks)"):
                                     for trailer in location.trailers:
                                         status = "🟢 Dispatched" if trailer.dispatched else "🔴 Active"
-                                        st.write(f"**Trailer #{trailer.number}**: {trailer.stacks} stacks - {status}")
-                                        st.write(f"  LD: {trailer.ld_number}")
-                                        if trailer.trailer_number:
-                                            st.write(f"  Trailer #: {trailer.trailer_number}")
-                                        if trailer.seal_number:
-                                            st.write(f"  Seal #: {trailer.seal_number}")
+                                        
+                                        # Create a unique key for each trailer
+                                        trailer_key = f"{location.name}_trailer_{trailer.number}"
+                                        
+                                        # Display trailer info with clickable button
+                                        col1, col2 = st.columns([3, 1])
+                                        
+                                        with col1:
+                                            st.write(f"**Trailer #{trailer.number}**: {trailer.stacks} stacks - {status}")
+                                            st.write(f"  LD: {trailer.ld_number}")
+                                            if trailer.trailer_number:
+                                                st.write(f"  Trailer #: {trailer.trailer_number}")
+                                            if trailer.seal_number:
+                                                st.write(f"  Seal #: {trailer.seal_number}")
+                                        
+                                        with col2:
+                                            if not trailer.dispatched:
+                                                if st.button("Edit", key=f"edit_{trailer_key}"):
+                                                    st.session_state[f"editing_{trailer_key}"] = True
+                                            else:
+                                                st.write("✅ Dispatched")
+                                        
+                                        # Show editing form if this trailer is being edited
+                                        if st.session_state.get(f"editing_{trailer_key}", False):
+                                            with st.container():
+                                                st.markdown("---")
+                                                st.subheader(f"Edit Trailer #{trailer.number}")
+                                                
+                                                col1, col2 = st.columns(2)
+                                                
+                                                with col1:
+                                                    new_trailer_number = st.text_input(
+                                                        "Trailer Number",
+                                                        value=trailer.trailer_number,
+                                                        key=f"trailer_num_{trailer_key}"
+                                                    )
+                                                
+                                                with col2:
+                                                    new_seal_number = st.text_input(
+                                                        "Seal Number",
+                                                        value=trailer.seal_number,
+                                                        key=f"seal_num_{trailer_key}"
+                                                    )
+                                                
+                                                col1, col2, col3 = st.columns(3)
+                                                
+                                                with col1:
+                                                    if st.button("Save Changes", key=f"save_{trailer_key}"):
+                                                        trailer.trailer_number = new_trailer_number
+                                                        trailer.seal_number = new_seal_number
+                                                        st.session_state[f"editing_{trailer_key}"] = False
+                                                        st.rerun()
+                                                
+                                                with col2:
+                                                    if st.button("Dispatch Trailer", key=f"dispatch_{trailer_key}", type="primary"):
+                                                        trailer.trailer_number = new_trailer_number
+                                                        trailer.seal_number = new_seal_number
+                                                        trailer.dispatched = True
+                                                        trailer.dispatch_timestamp = datetime.now().isoformat()
+                                                        st.session_state[f"editing_{trailer_key}"] = False
+                                                        st.success(f"✅ Trailer #{trailer.number} dispatched!")
+                                                        st.rerun()
+                                                
+                                                with col3:
+                                                    if st.button("Cancel", key=f"cancel_{trailer_key}"):
+                                                        st.session_state[f"editing_{trailer_key}"] = False
+                                                        st.rerun()
+                                                
+                                                st.markdown("---")
                             
                             st.metric("Total Trailers", total_trailers)
                             st.metric("Total Stacks", total_stacks)
@@ -1996,7 +2063,77 @@ elif page == "Relay Management":
                     with st.expander(f"{location.name} - {len(location.trailers)} trailers"):
                         for trailer in location.trailers:
                             status = "🟢 Dispatched" if trailer.dispatched else "🔴 Active"
-                            st.write(f"**Trailer #{trailer.number}**: {trailer.stacks} stacks - {status}")
+                            
+                            # Create a unique key for each trailer
+                            trailer_key = f"current_{location.name}_trailer_{trailer.number}"
+                            
+                            # Display trailer info with clickable button
+                            col1, col2 = st.columns([3, 1])
+                            
+                            with col1:
+                                st.write(f"**Trailer #{trailer.number}**: {trailer.stacks} stacks - {status}")
+                                st.write(f"  LD: {trailer.ld_number}")
+                                if trailer.trailer_number:
+                                    st.write(f"  Trailer #: {trailer.trailer_number}")
+                                if trailer.seal_number:
+                                    st.write(f"  Seal #: {trailer.seal_number}")
+                                if trailer.dispatched and trailer.dispatch_timestamp:
+                                    st.write(f"  Dispatched: {trailer.dispatch_timestamp}")
+                            
+                            with col2:
+                                if not trailer.dispatched:
+                                    if st.button("Edit", key=f"edit_{trailer_key}"):
+                                        st.session_state[f"editing_{trailer_key}"] = True
+                                else:
+                                    st.write("✅ Dispatched")
+                            
+                            # Show editing form if this trailer is being edited
+                            if st.session_state.get(f"editing_{trailer_key}", False):
+                                with st.container():
+                                    st.markdown("---")
+                                    st.subheader(f"Edit Trailer #{trailer.number}")
+                                    
+                                    col1, col2 = st.columns(2)
+                                    
+                                    with col1:
+                                        new_trailer_number = st.text_input(
+                                            "Trailer Number",
+                                            value=trailer.trailer_number,
+                                            key=f"trailer_num_{trailer_key}"
+                                        )
+                                    
+                                    with col2:
+                                        new_seal_number = st.text_input(
+                                            "Seal Number",
+                                            value=trailer.seal_number,
+                                            key=f"seal_num_{trailer_key}"
+                                        )
+                                    
+                                    col1, col2, col3 = st.columns(3)
+                                    
+                                    with col1:
+                                        if st.button("Save Changes", key=f"save_{trailer_key}"):
+                                            trailer.trailer_number = new_trailer_number
+                                            trailer.seal_number = new_seal_number
+                                            st.session_state[f"editing_{trailer_key}"] = False
+                                            st.rerun()
+                                    
+                                    with col2:
+                                        if st.button("Dispatch Trailer", key=f"dispatch_{trailer_key}", type="primary"):
+                                            trailer.trailer_number = new_trailer_number
+                                            trailer.seal_number = new_seal_number
+                                            trailer.dispatched = True
+                                            trailer.dispatch_timestamp = datetime.now().isoformat()
+                                            st.session_state[f"editing_{trailer_key}"] = False
+                                            st.success(f"✅ Trailer #{trailer.number} dispatched!")
+                                            st.rerun()
+                                    
+                                    with col3:
+                                        if st.button("Cancel", key=f"cancel_{trailer_key}"):
+                                            st.session_state[f"editing_{trailer_key}"] = False
+                                            st.rerun()
+                                    
+                                    st.markdown("---")
 
 # Main execution
 if __name__ == "__main__":
