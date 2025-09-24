@@ -1644,9 +1644,9 @@ page = st.sidebar.selectbox("Choose a page", ["System Overview", "Order Manageme
 
 if page == "System Overview":
     st.header("System Overview")
-    
+
     col1, col2 = st.columns(2)
-    
+
     with col1:
         st.subheader("System Status")
         if hasattr(st.session_state, 'order_system') and st.session_state.order_system is not None:
@@ -1657,7 +1657,7 @@ if page == "System Overview":
         else:
             st.error("❌ System Not Ready")
             st.info("Please refresh the page to reinitialize the system.")
-    
+
     with col2:
         st.subheader("System Capabilities")
         st.markdown("""
@@ -1688,12 +1688,12 @@ if page == "System Overview":
 
 elif page == "Order Management":
     st.header("Order Management")
-    
+
     col1, col2 = st.columns([2, 1])
-    
+
     with col1:
         st.subheader("Create Orders")
-        
+
         # Date input
         order_date = st.text_input(
             "Order Date", 
@@ -1701,7 +1701,7 @@ elif page == "Order Management":
             placeholder="MM/DD/YYYY (e.g., 12/25/2024)",
             help="Enter the date for the orders"
         )
-        
+
         # Day selection
         order_day = st.selectbox(
             "Select Day",
@@ -1709,40 +1709,40 @@ elif page == "Order Management":
             index=0,
             help="Select the day number for the orders"
         )
-        
+
         # Order system is now immutable - no max products option
         st.info("📋 Order System: Immutable - Orders are generated randomly")
-    
+
     with col2:
         st.subheader("Actions")
-        
+
         if st.button("Get Today's Date"):
             today_date = get_north_carolina_date_for_orders()
             st.session_state.today_date = today_date
             st.rerun()
-        
+
         if st.button("Generate Random Orders", type="primary"):
             if order_date and order_day:
                 try:
                     # Validate date format
                     datetime.strptime(order_date, "%m/%d/%Y")
-                    
+
                     # Debug: Show system info
                     total_routes = len(st.session_state.order_system.routes)
                     total_locations = len(st.session_state.order_system.get_available_locations())
                     st.info(f"🔍 System has {total_routes} routes across {total_locations} locations")
-                    
+
                     # Create orders with fixed random generation (immutable system)
                     orders = st.session_state.order_system.simulate_random_orders(
                         3, order_date, int(order_day)  # Fixed to 3 products per route
                     )
-                    
+
                     st.success(f"✅ Created {len(orders)} orders for {order_date} Day {order_day}")
-                    
+
                     # Debug: Show order distribution
                     locations_in_orders = set(order.location for order in orders)
                     st.info(f"📊 Orders created for {len(locations_in_orders)} locations: {', '.join(sorted(locations_in_orders))}")
-                    
+
                     # Save orders to single JSON file
                     filename = "orders.json"
                     try:
@@ -1751,7 +1751,7 @@ elif page == "Order Management":
                         if os.path.exists(filename):
                             with open(filename, 'r') as f:
                                 existing_orders = json.load(f)
-                        
+
                         # Convert new orders to JSON-serializable format
                         new_orders_data = []
                         for order in orders:
@@ -1776,19 +1776,19 @@ elif page == "Order Management":
                                 "total_stacks": order.total_stacks
                             }
                             new_orders_data.append(order_dict)
-                        
+
                         # Combine existing and new orders
                         all_orders = existing_orders + new_orders_data
-                        
+
                         # Save all orders to single file
                         with open(filename, 'w') as f:
                             json.dump(all_orders, f, indent=2)
-                        
+
                         st.success(f"💾 {len(new_orders_data)} new orders added to {filename} (Total: {len(all_orders)} orders)")
-                        
+
                     except Exception as e:
                         st.error(f"Error saving orders to file: {str(e)}")
-                    
+
                     # Show summary
                     location_summary = {}
                     for order in orders:
@@ -1797,30 +1797,30 @@ elif page == "Order Management":
                         location_summary[order.location]['orders'] += 1
                         location_summary[order.location]['trays'] += order.total_trays
                         location_summary[order.location]['stacks'] += order.total_stacks
-                    
+
                     st.subheader("Order Summary by Location")
                     for location, stats in sorted(location_summary.items()):
                         st.write(f"**{location}**: {stats['orders']} orders, {stats['trays']} trays, {stats['stacks']} stacks")
-                    
+
                 except ValueError:
                     st.error("Invalid date format. Please use MM/DD/YYYY format.")
                 except Exception as e:
                     st.error(f"Error creating orders: {str(e)}")
             else:
                 st.error("Please enter a date and select a day.")
-    
+
     # Display order data from single JSON file
     st.subheader("Order Data")
-    
+
     # Check for single orders.json file
     if os.path.exists("orders.json"):
         try:
             with open("orders.json", 'r') as f:
                 orders_data = json.load(f)
-            
+
             if orders_data:
                 st.write(f"📄 **orders.json** - {len(orders_data)} total orders")
-                
+
                 # Show summary by location
                 location_summary = {}
                 total_stacks = 0
@@ -1836,10 +1836,10 @@ elif page == "Order Management":
                     location_summary[location]['trays'] += trays
                     total_stacks += stacks
                     total_trays += trays
-                
+
                 st.write(f"**Total**: {total_stacks} stacks, {total_trays} trays")
                 st.write("**Orders by Location**:")
-                
+
                 for location, stats in sorted(location_summary.items()):
                     with st.expander(f"{location} - {stats['orders']} orders, {stats['stacks']} stacks, {stats['trays']} trays"):
                         # Show individual orders for this location
@@ -1848,19 +1848,19 @@ elif page == "Order Management":
                             st.write(f"  • {order['order_id']}: Route {order['route_id']} - {order['total_stacks']} stacks")
             else:
                 st.info("orders.json exists but is empty. Generate some random orders first!")
-                
+
         except Exception as e:
             st.error(f"Error reading orders.json: {str(e)}")
     else:
         st.info("No orders.json file found. Generate some random orders first!")
-    
+
     # Display existing orders (for backward compatibility)
     st.subheader("Current Session Orders")
     all_orders = st.session_state.order_system.get_all_orders()
-    
+
     if all_orders:
         st.write(f"Total Orders in Session: {len(all_orders)}")
-        
+
         # Group by date
         orders_by_date = {}
         for order in all_orders:
@@ -1868,36 +1868,36 @@ elif page == "Order Management":
             if date_part not in orders_by_date:
                 orders_by_date[date_part] = []
             orders_by_date[date_part].append(order)
-        
+
         for date, orders in sorted(orders_by_date.items()):
             with st.expander(f"Orders for {date} ({len(orders)} orders)"):
                 for order in orders:
                     st.write(f"**{order.order_id}**: Route {order.route_id} - {order.location} ({order.total_stacks} stacks)")
 			else:
         st.info("No orders in current session.")
-        
+
 elif page == "Relay Management":
     st.header("Relay Management")
-    
+
     # Check for single orders.json file
     if not os.path.exists("orders.json"):
         st.warning("No orders.json file available. Please generate some random orders first.")
 				else:
         st.subheader("Create Relay from Orders")
-        
+
         col1, col2 = st.columns([2, 1])
-        
+
         with col1:
             try:
                 # Load orders from single file
                 with open("orders.json", 'r') as f:
                     orders_data = json.load(f)
-                
+
                 if not orders_data:
                     st.warning("orders.json is empty. Please generate some random orders first.")
 							else:
                     st.info(f"📄 Loaded {len(orders_data)} orders from orders.json")
-                    
+
                     # Show order summary
                     location_summary = {}
                     total_stacks = 0
@@ -1913,23 +1913,23 @@ elif page == "Relay Management":
                         location_summary[location]['trays'] += trays
                         total_stacks += stacks
                         total_trays += trays
-                    
+
                     st.write(f"**Total**: {total_stacks} stacks, {total_trays} trays")
                     st.write("**Orders by Location**:")
                     for location, stats in sorted(location_summary.items()):
                         st.write(f"  - {location}: {stats['orders']} orders, {stats['stacks']} stacks, {stats['trays']} trays")
-                        
+
             except Exception as e:
                 st.error(f"Error loading orders.json: {str(e)}")
                 orders_data = None
-        
+
         with col2:
             st.subheader("Actions")
-            
+
             if st.button("Create Relay", type="primary"):
                 if orders_data:
                     try:
-                        
+
                         # Convert JSON orders back to Order objects for relay system
                         orders = []
                         for order_data in orders_data:
@@ -1947,7 +1947,7 @@ elif page == "Relay Management":
                                     tray_type=item_data['tray_type']
                                 )
                                 items.append(item)
-                            
+
                             # Create Order object from JSON data
                             order = Order(
                                 order_id=order_data['order_id'],
@@ -1959,7 +1959,7 @@ elif page == "Relay Management":
                                 total_stacks=order_data['total_stacks']
                             )
                             orders.append(order)
-                        
+
                         # Create relay from loaded orders using existing method
                         # We'll use the create_automated_relay method by temporarily adding orders to the system
                         # Clear existing orders and add the loaded ones
@@ -1968,40 +1968,40 @@ elif page == "Relay Management":
                         for order in orders:
                             orders_dict[order.order_id] = order
                         st.session_state.order_system.orders = orders_dict
-                        
+
                         # Get the date from the first order
                         first_order_date = orders[0].order_date.split(' ')[0] if orders else None
-                        
+
                         if first_order_date:
                             locations = st.session_state.relay_system.create_automated_relay(first_order_date)
                         else:
                             st.error("Could not determine date from orders")
                             locations = None
-                        
+
                         if locations:
                             st.session_state.current_locations = locations
                             st.success(f"✅ Created relay with {len(locations)} locations")
-                            
+
                             # Display relay summary
                             st.subheader("Relay Summary")
-                            
+
                             total_trailers = 0
                             total_stacks = 0
-                            
+
                             for location in locations:
                                 total_trailers += len(location.trailers)
                                 total_stacks += location.total_stacks
-                                
+
                                 with st.expander(f"{location.name} ({len(location.trailers)} trailers, {location.total_stacks} stacks)"):
                                     for trailer in location.trailers:
                                         status = "🟢 Dispatched" if trailer.dispatched else "🔴 Active"
-                                        
+
                                         # Create a unique key for each trailer
                                         trailer_key = f"{location.name}_trailer_{trailer.number}"
-                                        
+
                                         # Display trailer info with clickable button
                                         col1, col2 = st.columns([3, 1])
-                                        
+
                                         with col1:
                                             st.write(f"**Trailer #{trailer.number}**: {trailer.stacks} stacks - {status}")
                                             st.write(f"  LD: {trailer.ld_number}")
@@ -2009,45 +2009,45 @@ elif page == "Relay Management":
                                                 st.write(f"  Trailer #: {trailer.trailer_number}")
                                             if trailer.seal_number:
                                                 st.write(f"  Seal #: {trailer.seal_number}")
-                                        
+
                                         with col2:
                                             if not trailer.dispatched:
                                                 if st.button("Edit", key=f"edit_{trailer_key}"):
                                                     st.session_state[f"editing_{trailer_key}"] = True
                                             else:
                                                 st.write("✅ Dispatched")
-                                        
+
                                         # Show editing form if this trailer is being edited
                                         if st.session_state.get(f"editing_{trailer_key}", False):
                                             with st.container():
                                                 st.markdown("---")
                                                 st.subheader(f"Edit Trailer #{trailer.number}")
-                                                
+
                                                 col1, col2 = st.columns(2)
-                                                
+
                                                 with col1:
                                                     new_trailer_number = st.text_input(
                                                         "Trailer Number",
                                                         value=trailer.trailer_number,
                                                         key=f"trailer_num_{trailer_key}"
                                                     )
-                                                
+
                                                 with col2:
                                                     new_seal_number = st.text_input(
                                                         "Seal Number",
                                                         value=trailer.seal_number,
                                                         key=f"seal_num_{trailer_key}"
                                                     )
-                                                
+
                                                 col1, col2, col3 = st.columns(3)
-                                                
+
                                                 with col1:
                                                     if st.button("Save Changes", key=f"save_{trailer_key}"):
                                                         trailer.trailer_number = new_trailer_number
                                                         trailer.seal_number = new_seal_number
                                                         st.session_state[f"editing_{trailer_key}"] = False
                                                         st.rerun()
-                                                
+
                                                 with col2:
                                                     if st.button("Dispatch Trailer", key=f"dispatch_{trailer_key}", type="primary"):
                                                         trailer.trailer_number = new_trailer_number
@@ -2057,14 +2057,14 @@ elif page == "Relay Management":
                                                         st.session_state[f"editing_{trailer_key}"] = False
                                                         st.success(f"✅ Trailer #{trailer.number} dispatched!")
                                                         st.rerun()
-                                                
+
                                                 with col3:
                                                     if st.button("Cancel", key=f"cancel_{trailer_key}"):
                                                         st.session_state[f"editing_{trailer_key}"] = False
                                                         st.rerun()
-                                                
+
                                                 st.markdown("---")
-                            
+
                             st.metric("Total Trailers", total_trailers)
                             st.metric("Total Stacks", total_stacks)
                         else:
@@ -2073,7 +2073,7 @@ elif page == "Relay Management":
                         st.error(f"Error creating relay: {str(e)}")
                 else:
                     st.error("No orders available. Please generate some random orders first.")
-        
+
             # Display existing relay
             if st.session_state.current_locations:
                 st.subheader("Current Relay")
@@ -2081,13 +2081,13 @@ elif page == "Relay Management":
                     with st.expander(f"{location.name} - {len(location.trailers)} trailers"):
                         for trailer in location.trailers:
                             status = "🟢 Dispatched" if trailer.dispatched else "🔴 Active"
-                            
+
                             # Create a unique key for each trailer
                             trailer_key = f"current_{location.name}_trailer_{trailer.number}"
-                            
+
                             # Display trailer info with clickable button
                             col1, col2 = st.columns([3, 1])
-                            
+
                             with col1:
                                 st.write(f"**Trailer #{trailer.number}**: {trailer.stacks} stacks - {status}")
                                 st.write(f"  LD: {trailer.ld_number}")
@@ -2097,45 +2097,45 @@ elif page == "Relay Management":
                                     st.write(f"  Seal #: {trailer.seal_number}")
                                 if trailer.dispatched and trailer.dispatch_timestamp:
                                     st.write(f"  Dispatched: {trailer.dispatch_timestamp}")
-                            
+
                             with col2:
                                 if not trailer.dispatched:
                                     if st.button("Edit", key=f"edit_{trailer_key}"):
                                         st.session_state[f"editing_{trailer_key}"] = True
                                 else:
                                     st.write("✅ Dispatched")
-                            
+
                             # Show editing form if this trailer is being edited
                             if st.session_state.get(f"editing_{trailer_key}", False):
                                 with st.container():
                                     st.markdown("---")
                                     st.subheader(f"Edit Trailer #{trailer.number}")
-                                    
+
                                     col1, col2 = st.columns(2)
-                                    
+
                                     with col1:
                                         new_trailer_number = st.text_input(
                                             "Trailer Number",
                                             value=trailer.trailer_number,
                                             key=f"trailer_num_{trailer_key}"
                                         )
-                                    
+
                                     with col2:
                                         new_seal_number = st.text_input(
                                             "Seal Number",
                                             value=trailer.seal_number,
                                             key=f"seal_num_{trailer_key}"
                                         )
-                                    
+
                                     col1, col2, col3 = st.columns(3)
-                                    
+
                                     with col1:
                                         if st.button("Save Changes", key=f"save_{trailer_key}"):
                                             trailer.trailer_number = new_trailer_number
                                             trailer.seal_number = new_seal_number
                                             st.session_state[f"editing_{trailer_key}"] = False
                                             st.rerun()
-                                    
+
                                     with col2:
                                         if st.button("Dispatch Trailer", key=f"dispatch_{trailer_key}", type="primary"):
                                             trailer.trailer_number = new_trailer_number
@@ -2145,12 +2145,12 @@ elif page == "Relay Management":
                                             st.session_state[f"editing_{trailer_key}"] = False
                                             st.success(f"✅ Trailer #{trailer.number} dispatched!")
                                             st.rerun()
-                                    
+
                                     with col3:
                                         if st.button("Cancel", key=f"cancel_{trailer_key}"):
                                             st.session_state[f"editing_{trailer_key}"] = False
                                             st.rerun()
-                                    
+
                                     st.markdown("---")
 
 # Main execution
@@ -2161,10 +2161,10 @@ if __name__ == "__main__":
         print("🚀 Detected direct execution - launching Streamlit...")
         import subprocess
         import os
-        
+
         # Get port from environment
         port = os.getenv("PORT", "10000")
-        
+
         # Launch streamlit
         cmd = [
             sys.executable, "-m", "streamlit", "run", __file__,
@@ -2174,7 +2174,7 @@ if __name__ == "__main__":
             "--server.enableCORS", "false",
             "--server.enableXsrfProtection", "false"
         ]
-        
+
         print(f"Running: {' '.join(cmd)}")
         subprocess.run(cmd)
     else:
