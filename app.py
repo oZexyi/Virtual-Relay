@@ -4,7 +4,7 @@ import streamlit as st
 import requests
 from datetime import datetime
 
-from orders import OrderSystem, Order
+from orders import OrderSystem, Order, OrderItem
 from relay_logic import RelaySystem, Location
 
 
@@ -1745,14 +1745,17 @@ elif page == "Order Management":
                                 "route_id": order.route_id,
                                 "location": order.location,
                                 "order_date": order.order_date,
-                                "products": [
+                                "items": [
                                     {
-                                        "product_id": p.product_id,
-                                        "product_name": p.product_name,
-                                        "quantity": p.quantity,
-                                        "trays": p.trays,
-                                        "stacks": p.stacks
-                                    } for p in order.products
+                                        "product_number": item.product_number,
+                                        "product_name": item.product_name,
+                                        "units_ordered": item.units_ordered,
+                                        "units_per_tray": item.units_per_tray,
+                                        "trays_needed": item.trays_needed,
+                                        "stack_height": item.stack_height,
+                                        "stacks_needed": item.stacks_needed,
+                                        "tray_type": item.tray_type
+                                    } for item in order.items
                                 ],
                                 "total_trays": order.total_trays,
                                 "total_stacks": order.total_stacks
@@ -1912,17 +1915,31 @@ elif page == "Relay Management":
                         # Convert JSON orders back to Order objects for relay system
                         orders = []
                         for order_data in orders_data:
+                            # Create OrderItem objects from JSON data
+                            items = []
+                            for item_data in order_data['items']:
+                                item = OrderItem(
+                                    product_number=item_data['product_number'],
+                                    product_name=item_data['product_name'],
+                                    units_ordered=item_data['units_ordered'],
+                                    units_per_tray=item_data['units_per_tray'],
+                                    trays_needed=item_data['trays_needed'],
+                                    stack_height=item_data['stack_height'],
+                                    stacks_needed=item_data['stacks_needed'],
+                                    tray_type=item_data['tray_type']
+                                )
+                                items.append(item)
+                            
                             # Create Order object from JSON data
                             order = Order(
                                 order_id=order_data['order_id'],
                                 route_id=order_data['route_id'],
                                 location=order_data['location'],
                                 order_date=order_data['order_date'],
-                                products=[]  # We'll populate this if needed
+                                items=items,
+                                total_trays=order_data['total_trays'],
+                                total_stacks=order_data['total_stacks']
                             )
-                            # Set totals directly
-                            order.total_trays = order_data['total_trays']
-                            order.total_stacks = order_data['total_stacks']
                             orders.append(order)
                         
                         # Create relay from loaded orders using existing method
