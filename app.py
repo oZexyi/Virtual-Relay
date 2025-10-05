@@ -1809,27 +1809,6 @@ elif page == "Order Management":
             else:
                 st.error("Please enter a date and select a day.")
 
-    # Display current session orders summary
-    st.subheader("Current Session Orders")
-    all_orders = st.session_state.order_system.get_all_orders()
-
-    if all_orders:
-        st.write(f"Total Orders in Session: {len(all_orders)}")
-
-        # Group by date
-        orders_by_date = {}
-        for order in all_orders:
-            date_part = order.order_date.split(" ")[0]
-            if date_part not in orders_by_date:
-                orders_by_date[date_part] = []
-            orders_by_date[date_part].append(order)
-
-        for date, orders in sorted(orders_by_date.items()):
-            with st.expander(f"Orders for {date} ({len(orders)} orders)"):
-                for order in orders:
-                    st.write(f"**{order.order_id}**: Route {order.route_id} - {order.location} ({order.total_stacks} stacks)")
-    else:
-        st.info("No orders in current session.")
 
 elif page == "Relay Management":
     st.header("Relay Management")
