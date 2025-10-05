@@ -1991,84 +1991,169 @@ elif page == "Relay Management":
                 else:
                     st.error("No orders available. Please generate some random orders first.")
 
-            # Display existing relay
-            if st.session_state.current_locations:
-                st.subheader("Current Relay")
-                for location in st.session_state.current_locations:
-                    with st.expander(f"{location.name} - {len(location.trailers)} trailers"):
-                        for trailer in location.trailers:
-                            status = "🟢 Dispatched" if trailer.dispatched else "🔴 Active"
+        # Display existing relay (moved outside of column structure to center it)
+        if st.session_state.current_locations:
+            st.subheader("Current Relay")
+            for location in st.session_state.current_locations:
+                with st.expander(f"{location.name} - {len(location.trailers)} trailers"):
+                    for trailer in location.trailers:
+                        status = "🟢 Dispatched" if trailer.dispatched else "🔴 Active"
 
-                            # Create a unique key for each trailer
-                            trailer_key = f"current_{location.name}_trailer_{trailer.number}"
+                        # Create a unique key for each trailer
+                        trailer_key = f"current_{location.name}_trailer_{trailer.number}"
 
-                            # Display trailer info with clickable button
-                            col1, col2 = st.columns([3, 1])
+                        # Display trailer info with clickable button
+                        col1, col2 = st.columns([3, 1])
 
-                            with col1:
-                                st.write(f"**Trailer #{trailer.number}**: {trailer.stacks} stacks - {status}")
-                                st.write(f"  LD: {trailer.ld_number}")
-                                if trailer.trailer_number:
-                                    st.write(f"  Trailer #: {trailer.trailer_number}")
-                                if trailer.seal_number:
-                                    st.write(f"  Seal #: {trailer.seal_number}")
-                                if trailer.dispatched and trailer.dispatch_timestamp:
-                                    st.write(f"  Dispatched: {trailer.dispatch_timestamp}")
+                        with col1:
+                            st.write(f"**Trailer #{trailer.number}**: {trailer.stacks} stacks - {status}")
+                            st.write(f"  LD: {trailer.ld_number}")
+                            if trailer.trailer_number:
+                                st.write(f"  Trailer #: {trailer.trailer_number}")
+                            if trailer.seal_number:
+                                st.write(f"  Seal #: {trailer.seal_number}")
+                            if trailer.dispatched and trailer.dispatch_timestamp:
+                                st.write(f"  Dispatched: {trailer.dispatch_timestamp}")
 
-                            with col2:
-                                if not trailer.dispatched:
-                                    if st.button("Edit", key=f"edit_{trailer_key}"):
-                                        st.session_state[f"editing_{trailer_key}"] = True
-                                else:
-                                    st.write("✅ Dispatched")
+                        with col2:
+                            if not trailer.dispatched:
+                                if st.button("Edit", key=f"edit_{trailer_key}"):
+                                    st.session_state[f"editing_{trailer_key}"] = True
+                            else:
+                                st.write("✅ Dispatched")
 
-                            # Show editing form if this trailer is being edited
-                            if st.session_state.get(f"editing_{trailer_key}", False):
-                                with st.container():
-                                    st.markdown("---")
-                                    st.subheader(f"Edit Trailer #{trailer.number}")
+                        # Show editing form if this trailer is being edited
+                        if st.session_state.get(f"editing_{trailer_key}", False):
+                            with st.container():
+                                st.markdown("---")
+                                st.subheader(f"Edit Trailer #{trailer.number}")
 
-                                    col1, col2 = st.columns(2)
+                                col1, col2 = st.columns(2)
 
-                                    with col1:
-                                        new_trailer_number = st.text_input(
-                                            "Trailer Number",
-                                            value=trailer.trailer_number,
-                                            key=f"trailer_num_{trailer_key}"
-                                        )
+                                with col1:
+                                    new_trailer_number = st.text_input(
+                                        "Trailer Number",
+                                        value=trailer.trailer_number,
+                                        key=f"trailer_num_{trailer_key}"
+                                    )
 
-                                    with col2:
-                                        new_seal_number = st.text_input(
-                                            "Seal Number",
-                                            value=trailer.seal_number,
-                                            key=f"seal_num_{trailer_key}"
-                                        )
+                                with col2:
+                                    new_seal_number = st.text_input(
+                                        "Seal Number",
+                                        value=trailer.seal_number,
+                                        key=f"seal_num_{trailer_key}"
+                                    )
 
-                                    col1, col2, col3 = st.columns(3)
+                                col1, col2, col3 = st.columns(3)
 
-                                    with col1:
-                                        if st.button("Save Changes", key=f"save_{trailer_key}"):
-                                            trailer.trailer_number = new_trailer_number
-                                            trailer.seal_number = new_seal_number
-                                            st.session_state[f"editing_{trailer_key}"] = False
-                                            st.rerun()
+                                with col1:
+                                    if st.button("Save Changes", key=f"save_{trailer_key}"):
+                                        trailer.trailer_number = new_trailer_number
+                                        trailer.seal_number = new_seal_number
+                                        st.session_state[f"editing_{trailer_key}"] = False
+                                        st.rerun()
 
-                                    with col2:
-                                        if st.button("Dispatch Trailer", key=f"dispatch_{trailer_key}", type="primary"):
-                                            trailer.trailer_number = new_trailer_number
-                                            trailer.seal_number = new_seal_number
-                                            trailer.dispatched = True
-                                            trailer.dispatch_timestamp = datetime.now().isoformat()
-                                            st.session_state[f"editing_{trailer_key}"] = False
-                                            st.success(f"✅ Trailer #{trailer.number} dispatched!")
-                                            st.rerun()
+                                with col2:
+                                    if st.button("Dispatch Trailer", key=f"dispatch_{trailer_key}", type="primary"):
+                                        trailer.trailer_number = new_trailer_number
+                                        trailer.seal_number = new_seal_number
+                                        trailer.dispatched = True
+                                        trailer.dispatch_timestamp = datetime.now().isoformat()
+                                        st.session_state[f"editing_{trailer_key}"] = False
+                                        st.success(f"✅ Trailer #{trailer.number} dispatched!")
+                                        st.rerun()
 
-                                    with col3:
-                                        if st.button("Cancel", key=f"cancel_{trailer_key}"):
-                                            st.session_state[f"editing_{trailer_key}"] = False
-                                            st.rerun()
+                                with col3:
+                                    if st.button("Cancel", key=f"cancel_{trailer_key}"):
+                                        st.session_state[f"editing_{trailer_key}"] = False
+                                        st.rerun()
 
-                                    st.markdown("---")
+                                st.markdown("---")
+
+        # Inbound Trailers Analysis
+        if st.session_state.current_locations:
+            st.subheader("Inbound Trailers Analysis")
+            st.info("📥 Products that need to be ordered from other plants (origin_plant ≠ 191)")
+            
+            # Analyze orders for inbound products
+            inbound_analysis = analyze_inbound_products()
+            
+            if inbound_analysis:
+                # Display inbound products by origin plant
+                for origin_plant, products in inbound_analysis.items():
+                    with st.expander(f"Origin Plant {origin_plant} - {len(products)} products"):
+                        total_units = sum(product['total_units'] for product in products)
+                        total_trays = sum(product['total_trays'] for product in products)
+                        total_stacks = sum(product['total_stacks'] for product in products)
+                        
+                        st.write(f"**Total**: {total_units} units, {total_trays} trays, {total_stacks} stacks")
+                        st.write("**Products needed:**")
+                        
+                        for product in products:
+                            st.write(f"  • {product['product_name']} (Product #{product['product_number']})")
+                            st.write(f"    Units: {product['total_units']}, Trays: {product['total_trays']}, Stacks: {product['total_stacks']}")
+            else:
+                st.success("✅ All products are from our plant (191) - No inbound trailers needed!")
+
+
+def analyze_inbound_products():
+    """Analyze orders to identify products that need to be ordered from other plants"""
+    try:
+        # Load products data
+        with open("products.json", 'r') as f:
+            products_data = json.load(f)
+        
+        # Create product lookup by product_number
+        products_lookup = {p['product_number']: p for p in products_data}
+        
+        # Load orders from JSON file
+        with open("orders.json", 'r') as f:
+            orders_data = json.load(f)
+        
+        # Analyze each order for inbound products
+        inbound_products = {}  # origin_plant -> list of products
+        
+        for order in orders_data:
+            for item in order['items']:
+                product_number = item['product_number']
+                
+                if product_number in products_lookup:
+                    product_info = products_lookup[product_number]
+                    origin_plant = product_info['origin_plant']
+                    
+                    # Only include products from other plants (not our plant 191)
+                    if origin_plant != 191:
+                        if origin_plant not in inbound_products:
+                            inbound_products[origin_plant] = {}
+                        
+                        product_key = f"{product_number}_{product_info['name']}"
+                        
+                        if product_key not in inbound_products[origin_plant]:
+                            inbound_products[origin_plant][product_key] = {
+                                'product_number': product_number,
+                                'product_name': product_info['name'],
+                                'origin_plant': origin_plant,
+                                'total_units': 0,
+                                'total_trays': 0,
+                                'total_stacks': 0
+                            }
+                        
+                        # Add to totals
+                        inbound_products[origin_plant][product_key]['total_units'] += item['units_ordered']
+                        inbound_products[origin_plant][product_key]['total_trays'] += item['trays_needed']
+                        inbound_products[origin_plant][product_key]['total_stacks'] += item['stacks_needed']
+        
+        # Convert to list format for display
+        result = {}
+        for origin_plant, products in inbound_products.items():
+            result[origin_plant] = list(products.values())
+        
+        return result
+        
+    except Exception as e:
+        st.error(f"Error analyzing inbound products: {str(e)}")
+        return None
+
 
 # Main execution
 if __name__ == "__main__":
