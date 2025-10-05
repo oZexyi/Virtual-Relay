@@ -2155,32 +2155,7 @@ def analyze_inbound_products():
         return None
 
 
-# Main execution
-if __name__ == "__main__":
-    # Check if we're running directly (not via streamlit run)
-    import sys
-    if "streamlit" not in sys.modules:
-        print("🚀 Detected direct execution - launching Streamlit...")
-        import subprocess
-        import os
-
-        # Get port from environment
-        port = os.getenv("PORT", "10000")
-
-        # Launch streamlit
-        cmd = [
-            sys.executable, "-m", "streamlit", "run", __file__,
-            "--server.port", port,
-            "--server.address", "0.0.0.0",
-            "--server.headless", "true",
-            "--server.enableCORS", "false",
-            "--server.enableXsrfProtection", "false"
-        ]
-
-        print(f"Running: {' '.join(cmd)}")
-        subprocess.run(cmd)
-    else:
-        # Running via streamlit run - continue with app
-        pass
+# Main execution - Streamlit will handle this automatically
+# No need for manual subprocess launching on Render
 
 
