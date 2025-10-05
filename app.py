@@ -1798,9 +1798,6 @@ elif page == "Order Management":
                         location_summary[order.location]['trays'] += order.total_trays
                         location_summary[order.location]['stacks'] += order.total_stacks
 
-                    st.subheader("Order Summary by Location")
-                    for location, stats in sorted(location_summary.items()):
-                        st.write(f"**{location}**: {stats['orders']} orders, {stats['trays']} trays, {stats['stacks']} stacks")
 
                 except ValueError:
                     st.error("Invalid date format. Please use MM/DD/YYYY format.")
@@ -1832,26 +1829,6 @@ elif page == "Relay Management":
                 else:
                     st.info(f"📄 Loaded {len(orders_data)} orders from orders.json")
 
-                    # Show order summary
-                    location_summary = {}
-                    total_stacks = 0
-                    total_trays = 0
-                    for order in orders_data:
-                        location = order['location']
-                        stacks = order['total_stacks']
-                        trays = order['total_trays']
-                        if location not in location_summary:
-                            location_summary[location] = {'orders': 0, 'stacks': 0, 'trays': 0}
-                        location_summary[location]['orders'] += 1
-                        location_summary[location]['stacks'] += stacks
-                        location_summary[location]['trays'] += trays
-                        total_stacks += stacks
-                        total_trays += trays
-
-                    st.write(f"**Total**: {total_stacks} stacks, {total_trays} trays")
-                    st.write("**Orders by Location**:")
-                    for location, stats in sorted(location_summary.items()):
-                        st.write(f"  - {location}: {stats['orders']} orders, {stats['stacks']} stacks, {stats['trays']} trays")
 
             except Exception as e:
                 st.error(f"Error loading orders.json: {str(e)}")
