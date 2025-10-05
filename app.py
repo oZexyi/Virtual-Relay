@@ -1732,9 +1732,9 @@ elif page == "Order Management":
                     total_locations = len(st.session_state.order_system.get_available_locations())
                     st.info(f"🔍 System has {total_routes} routes across {total_locations} locations")
 
-                    # Create orders with fixed random generation (immutable system)
+                    # Create orders with larger sizes to generate multiple trailers
                     orders = st.session_state.order_system.simulate_random_orders(
-                        3, order_date, int(order_day)  # Fixed to 3 products per route
+                        5, order_date, int(order_day)  # Increased to 5 products per route for larger orders
                     )
 
                     st.success(f"✅ Created {len(orders)} orders for {order_date} Day {order_day}")
@@ -1809,52 +1809,7 @@ elif page == "Order Management":
             else:
                 st.error("Please enter a date and select a day.")
 
-    # Display order data from single JSON file
-    st.subheader("Order Data")
-
-    # Check for single orders.json file
-    if os.path.exists("orders.json"):
-        try:
-            with open("orders.json", 'r') as f:
-                orders_data = json.load(f)
-
-            if orders_data:
-                st.write(f"📄 **orders.json** - {len(orders_data)} total orders")
-
-                # Show summary by location
-                location_summary = {}
-                total_stacks = 0
-                total_trays = 0
-                for order in orders_data:
-                    location = order['location']
-                    stacks = order['total_stacks']
-                    trays = order['total_trays']
-                    if location not in location_summary:
-                        location_summary[location] = {'orders': 0, 'stacks': 0, 'trays': 0}
-                    location_summary[location]['orders'] += 1
-                    location_summary[location]['stacks'] += stacks
-                    location_summary[location]['trays'] += trays
-                    total_stacks += stacks
-                    total_trays += trays
-
-                st.write(f"**Total**: {total_stacks} stacks, {total_trays} trays")
-                st.write("**Orders by Location**:")
-
-                for location, stats in sorted(location_summary.items()):
-                    with st.expander(f"{location} - {stats['orders']} orders, {stats['stacks']} stacks, {stats['trays']} trays"):
-                        # Show individual orders for this location
-                        location_orders = [o for o in orders_data if o['location'] == location]
-                        for order in location_orders:
-                            st.write(f"  • {order['order_id']}: Route {order['route_id']} - {order['total_stacks']} stacks")
-            else:
-                st.info("orders.json exists but is empty. Generate some random orders first!")
-
-        except Exception as e:
-            st.error(f"Error reading orders.json: {str(e)}")
-    else:
-        st.info("No orders.json file found. Generate some random orders first!")
-
-    # Display existing orders (for backward compatibility)
+    # Display current session orders summary
     st.subheader("Current Session Orders")
     all_orders = st.session_state.order_system.get_all_orders()
 
@@ -1969,15 +1924,21 @@ elif page == "Relay Management":
                             orders_dict[order.order_id] = order
                         st.session_state.order_system.orders = orders_dict
 
-                        # Get the date from the first order
-                        first_order_date = orders[0].order_date.split(' ')[0] if orders else None
-
-                        if first_order_date:
-                            locations = st.session_state.relay_system.create_automated_relay(first_order_date)
-                        else:
-                            st.error("Could not determine date from orders")
-                            locations = None
-
+                        # Create relay directly from loaded orders instead of filtering by date
+                        # Group orders by location
+                        location_orders = {}
+                        for order in orders:
+                            if order.location not in location_orders:
+                                location_orders[order.location] = []
+                            location_orders[order.location].append(order)
+                        
+                        # Create Location objects from orders
+                        locations = []
+                        for location_name, location_orders_list in location_orders.items():
+                            from relay_logic import Location
+                            location = Location.from_orders(location_name, location_orders_list)
+                            locations.append(location)
+                        
                         if locations:
                             st.session_state.current_locations = locations
                             st.success(f"✅ Created relay with {len(locations)} locations")
