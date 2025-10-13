@@ -1,10 +1,10 @@
+# Virtual Relay System - Render Deployment Configuration
 services:
   - type: web
     name: virtual-relay-system
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: python launch.py
-    plan: free
+    startCommand: streamlit run app.py --server.port=$PORT --server.address=0.0.0.0 --server.headless=true --server.enableCORS=false --server.enableXsrfProtection=false
     envVars:
       - key: RENDER
         value: true

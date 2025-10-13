@@ -1,3 +1,14 @@
+"""
+Dashboard System
+Main dashboard for the Virtual Relay System with department management.
+
+Features:
+- Department-based navigation
+- System status monitoring
+- Interactive department launching
+- System information display
+"""
+
 import os
 import sys
 from typing import Optional
@@ -11,29 +22,41 @@ from relay_logic import RelaySystem
 from orders import OrderSystem
 
 
+# ============================================================================
+# DEPARTMENT CLASSES
+# ============================================================================
+
 class Department:
-    """Base class for all departments"""
+    """Base class for all departments."""
 
     def __init__(self, name: str, description: str):
+        """
+        Initialize a department.
+        
+        Args:
+            name: Department name
+            description: Department description
+        """
         self.name = name
         self.description = description
         self.is_available = True
 
     def display_info(self):
-        """Display department information"""
+        """Display department information."""
         status = "🟢 Available" if self.is_available else "🔴 Unavailable"
         print(f"  {self.name}: {self.description} - {status}")
 
     def launch(self):
-        """Launch the department - to be overridden by subclasses"""
+        """Launch the department - to be overridden by subclasses."""
         print(f"Launching {self.name} department...")
         print("This department is not yet implemented.")
 
 
 class ShippingDepartment(Department):
-    """Shipping department with access to relay and order systems"""
+    """Shipping department with access to relay and order systems."""
 
     def __init__(self):
+        """Initialize the shipping department."""
         super().__init__(
             name="Shipping",
             description="Virtual Relay System & Order Management"
@@ -42,7 +65,7 @@ class ShippingDepartment(Department):
         self.order_system = None
 
     def launch(self):
-        """Launch the shipping department"""
+        """Launch the shipping department."""
         print(f"\n{'='*80}")
         print(f"SHIPPING DEPARTMENT - VIRTUAL RELAY SYSTEM")
         print(f"{'='*80}")
@@ -72,7 +95,7 @@ class ShippingDepartment(Department):
                 print("Invalid choice. Please select 1-4.")
 
     def _launch_relay_system(self):
-        """Launch the virtual relay system"""
+        """Launch the virtual relay system."""
         print(f"\n{'='*60}")
         print("VIRTUAL RELAY SYSTEM")
         print("="*60)
@@ -83,7 +106,7 @@ class ShippingDepartment(Department):
         self.relay_system.interactive_menu()
 
     def _launch_order_system(self):
-        """Launch the order management system"""
+        """Launch the order management system."""
         print(f"\n{'='*60}")
         print("ORDER MANAGEMENT SYSTEM")
         print("="*60)
@@ -94,7 +117,7 @@ class ShippingDepartment(Department):
         self.order_system.main()
 
     def _display_system_status(self):
-        """Display system status and information"""
+        """Display system status and information."""
         print(f"\n{'='*80}")
         print("SHIPPING DEPARTMENT - SYSTEM STATUS")
         print(f"{'='*80}")
@@ -134,9 +157,10 @@ class ShippingDepartment(Department):
 
 
 class SanitationDepartment(Department):
-    """Sanitation department - placeholder for future implementation"""
+    """Sanitation department - placeholder for future implementation."""
 
     def __init__(self):
+        """Initialize the sanitation department."""
         super().__init__(
             name="Sanitation",
             description="Sanitation Management & Scheduling"
@@ -144,7 +168,7 @@ class SanitationDepartment(Department):
         self.is_available = False  # Not yet implemented
 
     def launch(self):
-        """Launch the sanitation department"""
+        """Launch the sanitation department."""
         print(f"\n{'='*80}")
         print(f"SANITATION DEPARTMENT")
         print(f"{'='*80}")
@@ -160,9 +184,10 @@ class SanitationDepartment(Department):
 
 
 class ProductionDepartment(Department):
-    """Production department - placeholder for future implementation"""
+    """Production department - placeholder for future implementation."""
 
     def __init__(self):
+        """Initialize the production department."""
         super().__init__(
             name="Production",
             description="Production Planning & Management"
@@ -170,7 +195,7 @@ class ProductionDepartment(Department):
         self.is_available = False  # Not yet implemented
 
     def launch(self):
-        """Launch the production department"""
+        """Launch the production department."""
         print(f"\n{'='*80}")
         print(f"PRODUCTION DEPARTMENT")
         print(f"{'='*80}")
@@ -186,10 +211,15 @@ class ProductionDepartment(Department):
         input("\nPress Enter to return to main dashboard...")
 
 
+# ============================================================================
+# MAIN DASHBOARD
+# ============================================================================
+
 class MainDashboard:
-    """Main dashboard for the Virtual Relay System"""
+    """Main dashboard for the Virtual Relay System."""
 
     def __init__(self):
+        """Initialize the main dashboard."""
         self.departments = {
             "1": ShippingDepartment(),
             "2": SanitationDepartment(),
@@ -199,7 +229,7 @@ class MainDashboard:
         self.version = "2.0.0"
 
     def display_header(self):
-        """Display the main dashboard header"""
+        """Display the main dashboard header."""
         print(f"\n{'='*80}")
         print(f"🏭 {self.system_name.upper()} - MAIN DASHBOARD")
         print(f"{'='*80}")
@@ -208,7 +238,7 @@ class MainDashboard:
         print(f"{'='*80}")
 
     def display_departments(self):
-        """Display all available departments"""
+        """Display all available departments."""
         print(f"\n📋 AVAILABLE DEPARTMENTS:")
         print(f"{'='*50}")
 
@@ -219,7 +249,7 @@ class MainDashboard:
         print(f"{'='*50}")
 
     def display_system_info(self):
-        """Display system information"""
+        """Display system information."""
         print(f"\n{'='*80}")
         print(f"SYSTEM INFORMATION")
         print(f"{'='*80}")
@@ -247,7 +277,7 @@ class MainDashboard:
         print(f"{'='*80}")
 
     def run(self):
-        """Run the main dashboard"""
+        """Run the main dashboard."""
         while True:
             self.display_header()
             self.display_departments()
@@ -284,8 +314,12 @@ class MainDashboard:
                 input("Press Enter to continue...")
 
 
+# ============================================================================
+# MAIN EXECUTION
+# ============================================================================
+
 def main():
-    """Main function to run the dashboard"""
+    """Main function to run the dashboard."""
     try:
         dashboard = MainDashboard()
         dashboard.run()

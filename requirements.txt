@@ -1,4 +1,16 @@
+# Virtual Relay System Dependencies
+# Core web framework
 streamlit==1.28.1
+
+# HTTP requests for API integration
 requests==2.31.0
 
-
+# Note: All other dependencies are part of Python standard library
+# - json: JSON data handling
+# - datetime: Date and time operations
+# - math: Mathematical calculations
+# - random: Random number generation
+# - os: Operating system interface
+# - sys: System-specific parameters
+# - typing: Type hints support
+# - dataclasses: Data class support

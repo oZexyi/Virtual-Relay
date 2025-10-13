@@ -1,3 +1,14 @@
+"""
+Relay Logic System
+Handles trailer assignment, location management, and automated relay creation.
+
+Features:
+- Automated trailer assignment with 98-stack capacity limits
+- Location-based order processing
+- Interactive relay management
+- Real-time dispatch tracking
+"""
+
 from math import ceil
 import random
 import json
@@ -10,9 +21,24 @@ import sys
 sys.path.append(os.path.dirname(__file__))
 from orders import OrderSystem, Order, OrderItem
 
-# Trailer with its associated info (stack count, overload info, etc.)
+
+# ============================================================================
+# DATA MODELS
+# ============================================================================
+
 class Trailer:
-    def __init__(self, number, stacks, overload_from=None, order_info=None):
+    """Trailer model with dispatch tracking and identification."""
+    
+    def __init__(self, number: int, stacks: int, overload_from: Optional[tuple] = None, order_info: Optional[List[Order]] = None):
+        """
+        Initialize a trailer.
+        
+        Args:
+            number: Trailer number
+            stacks: Number of stacks assigned
+            overload_from: Optional overload information
+            order_info: Optional order information for automated relays
+        """
         self.number = number
         self.stacks = stacks
         self.overload_from = overload_from
@@ -22,9 +48,26 @@ class Trailer:
         self.seal_number = ""
         self.dispatched = False  # Track if trailer has been dispatched
         self.dispatch_timestamp = None  # When the trailer was dispatched
-# Shipping location and stack/tray calculations
+
+
 class Location:
-    def __init__(self, name, bread_trays=0, bulk_trays=0, cake_pallets=0, orders=None):
+    """
+    Shipping location with stack/tray calculations and trailer management.
+    
+    Handles automated trailer assignment based on order requirements.
+    """
+
+    def __init__(self, name: str, bread_trays: int = 0, bulk_trays: int = 0, cake_pallets: int = 0, orders: Optional[List[Order]] = None):
+        """
+        Initialize a location.
+        
+        Args:
+            name: Location name
+            bread_trays: Number of bread trays
+            bulk_trays: Number of bulk trays
+            cake_pallets: Number of cake pallets
+            orders: Optional list of orders for automated relay creation
+        """
         self.name = name
         self.bread_trays = bread_trays
         self.bulk_trays = bulk_trays
@@ -35,23 +78,38 @@ class Location:
         self.total_stacks = self.total_bread_stacks + self.total_bulk_stacks
         self.total_trays = (bread_trays + bulk_trays) if (bread_trays or bulk_trays) else 0
         self.trailers = []
-    # Assign trailers based on stack count and cake pallets
-    def assign_trailers(self, order_info=None):
+
+    def assign_trailers(self, order_info: Optional[List[Order]] = None):
+        """
+        Assign trailers based on stack count and cake pallets.
+        
+        Args:
+            order_info: Optional order information for automated relay creation
+        """
         stacks_remaining = self.total_stacks
         trailer_number = 1
         while stacks_remaining > 0:
-            count = min(stacks_remaining, 98)
+            count = min(stacks_remaining, 98)  # 98-stack capacity limit
             self.trailers.append(Trailer(trailer_number, count, order_info=order_info))
             stacks_remaining -= count
             trailer_number += 1
 
-    # Create location from orders (automated relay creation)
     @classmethod
-    def from_orders(cls, location_name: str, orders: List[Order]):
-        """Create a Location object from a list of orders for automated relay creation"""
+    def from_orders(cls, location_name: str, orders: List[Order]) -> 'Location':
+        """
+        Create a Location object from a list of orders for automated relay creation.
+        
+        Args:
+            location_name: Name of the location
+            orders: List of Order objects
+            
+        Returns:
+            Location object with assigned trailers
+        """
         total_trays = 0
         total_stacks = 0
 
+        # Calculate totals from orders
         for order in orders:
             for item in order.items:
                 total_trays += item.trays_needed
@@ -74,13 +132,15 @@ class Location:
         # Assign trailers with order information
         location.assign_trailers(order_info=orders)
         return location
-    # Placeholder for FirstFleet tray information
+
     def finalize_trailers(self):
+        """Finalize trailer assignments (placeholder for FirstFleet integration)."""
         for trailer in self.trailers:
             trailer.bread_trays = None
             trailer.bulk_trays = None
-    # Display relay information
+
     def display_relay(self):
+        """Display relay information for this location."""
         for trailer in self.trailers:
             # If trailer has an overload, output overload info
             overload_text = f"- Overload [{trailer.overload_from[0]} {trailer.overload_from[1]} stacks]" if trailer.overload_from else ""
@@ -95,8 +155,8 @@ class Location:
             # Print empty input fields for trailer number and seal number
             print(f" Trailer #: [ {trailer.trailer_number} ] Seal #: [ {trailer.seal_number} ]")
 
-    # Display detailed order information for automated relays
     def display_order_details(self):
+        """Display detailed order information for automated relays."""
         if not self.orders:
             return
 
@@ -116,10 +176,24 @@ class Location:
         print(f"{'='*60}")
 
 
-class RelaySystem:
-    """Main relay system that integrates with the order system for automation"""
+# ============================================================================
+# RELAY SYSTEM
+# ============================================================================
 
-    def __init__(self, orders_file_path: str = None):
+class RelaySystem:
+    """
+    Main relay system that integrates with the order system for automation.
+    
+    Handles automated relay creation, trailer management, and dispatch tracking.
+    """
+
+    def __init__(self, orders_file_path: Optional[str] = None):
+        """
+        Initialize the relay system.
+        
+        Args:
+            orders_file_path: Optional path to orders file
+        """
         self.order_system = OrderSystem()
         self.locations = []
         self.orders_file_path = orders_file_path
@@ -129,7 +203,7 @@ class RelaySystem:
             self.order_system.load_orders_from_file(orders_file_path)
 
     def get_available_dates(self) -> List[str]:
-        """Get all available dates from orders"""
+        """Get all available dates from orders."""
         dates = set()
         for order in self.order_system.get_all_orders():
             # Extract date from order_date (format: YYYY-MM-DD HH:MM:SS)
@@ -138,7 +212,7 @@ class RelaySystem:
         return sorted(list(dates))
 
     def get_orders_by_date(self, date: str) -> List[Order]:
-        """Get all orders for a specific date"""
+        """Get all orders for a specific date."""
         orders = []
         for order in self.order_system.get_all_orders():
             order_date = order.order_date.split(' ')[0]
@@ -147,7 +221,7 @@ class RelaySystem:
         return orders
 
     def get_orders_by_location_and_date(self, location: str, date: str) -> List[Order]:
-        """Get all orders for a specific location and date"""
+        """Get all orders for a specific location and date."""
         orders = []
         for order in self.order_system.get_all_orders():
             order_date = order.order_date.split(' ')[0]
@@ -155,8 +229,17 @@ class RelaySystem:
                 orders.append(order)
         return orders
 
-    def create_automated_relay(self, date: str, day_number: int = None) -> List[Location]:
-        """Create automated relay from orders for a specific date"""
+    def create_automated_relay(self, date: str, day_number: Optional[int] = None) -> List[Location]:
+        """
+        Create automated relay from orders for a specific date.
+        
+        Args:
+            date: Date string in YYYY-MM-DD format
+            day_number: Optional day number
+            
+        Returns:
+            List of Location objects with assigned trailers
+        """
         orders = self.get_orders_by_date(date)
 
         if not orders:
@@ -179,8 +262,8 @@ class RelaySystem:
         self.locations = locations
         return locations
 
-    def display_relay_summary(self, date: str, day_number: int = None):
-        """Display a summary of the automated relay"""
+    def display_relay_summary(self, date: str, day_number: Optional[int] = None):
+        """Display a summary of the automated relay."""
         if not self.locations:
             print("No relay created yet. Use 'Create Relay' first.")
             return
@@ -209,7 +292,7 @@ class RelaySystem:
         print(f"{'='*80}")
 
     def display_full_relay(self):
-        """Display the complete relay with all details"""
+        """Display the complete relay with all details."""
         if not self.locations:
             print("No relay created yet. Use 'Create Relay' first.")
             return
@@ -219,7 +302,7 @@ class RelaySystem:
             print()  # Add spacing between locations
 
     def display_order_details(self):
-        """Display detailed order information for all locations"""
+        """Display detailed order information for all locations."""
         if not self.locations:
             print("No relay created yet. Use 'Create Relay' first.")
             return
@@ -228,7 +311,14 @@ class RelaySystem:
             location.display_order_details()
 
     def add_overload(self, location_name: str, trailer_number: int, overload_from: tuple):
-        """Add overload information to a specific trailer (manual input)"""
+        """
+        Add overload information to a specific trailer (manual input).
+        
+        Args:
+            location_name: Name of the location
+            trailer_number: Trailer number
+            overload_from: Tuple of (location, stacks)
+        """
         for location in self.locations:
             if location.name == location_name:
                 for trailer in location.trailers:
@@ -239,7 +329,7 @@ class RelaySystem:
         print(f"Trailer not found: {location_name} Trailer #{trailer_number}")
 
     def interactive_menu(self):
-        """Interactive menu for the relay system"""
+        """Interactive menu for the relay system."""
         while True:
             print("\n" + "="*80)
             print("VIRTUAL RELAY SYSTEM - AUTOMATED")
@@ -277,7 +367,7 @@ class RelaySystem:
                 print("Invalid choice. Please select 1-8.")
 
     def _create_relay_menu(self):
-        """Menu for creating automated relay"""
+        """Menu for creating automated relay."""
         dates = self.get_available_dates()
 
         if not dates:
@@ -309,7 +399,7 @@ class RelaySystem:
             print("Invalid selection.")
 
     def _add_overload_menu(self):
-        """Menu for adding overload information"""
+        """Menu for adding overload information."""
         if not self.locations:
             print("No relay created yet. Create a relay first.")
             return
@@ -336,7 +426,7 @@ class RelaySystem:
             print("Invalid input.")
 
     def _load_orders_menu(self):
-        """Menu for loading orders from file"""
+        """Menu for loading orders from file."""
         filename = input("Enter orders filename: ").strip()
         if filename:
             success = self.order_system.load_orders_from_file(filename)
@@ -345,10 +435,10 @@ class RelaySystem:
                 dates = self.get_available_dates()
                 print(f"Available dates: {', '.join(dates)}")
             else:
-                print("❌ Failed to load orders.")
+                print(f"❌ Failed to load orders.")
 
     def _view_dates_menu(self):
-        """Menu for viewing available dates"""
+        """Menu for viewing available dates."""
         dates = self.get_available_dates()
 
         if not dates:
@@ -366,8 +456,12 @@ class RelaySystem:
                 print(f"    - {location}: {len(location_orders)} orders, {total_stacks} stacks")
 
 
+# ============================================================================
+# MAIN EXECUTION
+# ============================================================================
+
 def main():
-    """Main function to run the relay system"""
+    """Main function to run the relay system."""
     print("Virtual Relay System - Automated")
     print("="*50)
 

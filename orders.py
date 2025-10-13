@@ -1,3 +1,14 @@
+"""
+Order Management System
+Handles product catalog, route management, and order processing for the Virtual Relay System.
+
+Features:
+- 252+ products with specific configurations
+- 135+ routes across 16+ locations
+- Automated order generation with realistic parameters
+- Product-specific calculations for optimal trailer utilization
+"""
+
 import json
 import math
 import random
@@ -6,8 +17,13 @@ from dataclasses import dataclass, asdict
 from datetime import datetime
 
 
+# ============================================================================
+# DATA MODELS
+# ============================================================================
+
 @dataclass
 class Product:
+    """Product model with configuration data."""
     name: str
     product_number: int
     stack_height: int
@@ -18,12 +34,14 @@ class Product:
 
 @dataclass
 class Route:
+    """Route model for delivery locations."""
     route_id: int  # Route number (e.g., 6278, 5539)
     location: str  # Warehouse location (e.g., Anderson, Galax)
 
 
 @dataclass
 class OrderItem:
+    """Individual item within an order."""
     product_number: int
     product_name: str
     units_ordered: int
@@ -36,6 +54,7 @@ class OrderItem:
 
 @dataclass
 class Order:
+    """Complete order with items and totals."""
     order_id: str
     route_id: int
     location: str
@@ -45,8 +64,20 @@ class Order:
     total_stacks: int
 
 
+# ============================================================================
+# ORDER SYSTEM
+# ============================================================================
+
 class OrderSystem:
+    """
+    Main order management system.
+    
+    Handles product catalog, route management, and order processing
+    for the Virtual Relay System.
+    """
+
     def __init__(self, products_file: str = "products.json", routes_file: str = "routes.json"):
+        """Initialize the order system with data files."""
         self.products_file = products_file
         self.routes_file = routes_file
         self.products = {}
@@ -54,8 +85,13 @@ class OrderSystem:
         self.orders = {}
         self.load_data()
 
-    def load_data(self):
-        """Load products and routes from JSON files"""
+    def load_data(self) -> bool:
+        """
+        Load products and routes from JSON files.
+        
+        Returns:
+            True if successful, False otherwise
+        """
         try:
             # Load products
             with open(self.products_file, 'r') as f:
@@ -86,11 +122,11 @@ class OrderSystem:
             return False
 
     def get_available_routes(self) -> List[Route]:
-        """Get all available routes"""
+        """Get all available routes."""
         return list(self.routes.values())
 
     def get_routes_for_location(self, location: str) -> List[Route]:
-        """Get all routes available for a specific location"""
+        """Get all routes available for a specific location."""
         location_routes = []
         for route in self.routes.values():
             if route.location == location:
@@ -98,29 +134,40 @@ class OrderSystem:
         return location_routes
 
     def get_available_locations(self) -> List[str]:
-        """Get all available locations"""
+        """Get all available locations."""
         locations = set()
         for route in self.routes.values():
             locations.add(route.location)
         return sorted(list(locations))
 
     def get_products_for_route(self, route_id: int) -> List[Product]:
-        """Get all products available for a specific route (all products are available for every route)"""
+        """
+        Get all products available for a specific route.
+        
+        Note: All products are available for every route.
+        """
         if route_id not in self.routes:
             return []
-
-        # All products are available for every route
         return list(self.products.values())
 
     def simulate_random_orders(self, max_products_per_order: int = 50, order_date: str = None, day_number: int = None) -> List[Order]:
-        """Simulate random orders for every single route available"""
+        """
+        Simulate random orders for every single route available.
+        
+        Args:
+            max_products_per_order: Maximum products per order
+            order_date: Optional date string in MM/DD/YYYY format
+            day_number: Optional day number
+            
+        Returns:
+            List of generated Order objects
+        """
         simulated_orders = []
         routes = list(self.routes.values())
         products = list(self.products.values())
 
         # Define locations that should have guaranteed large orders (2+ trailers)
         large_order_locations = ['Greenville', 'Anderson', 'Gastonia', 'Spartanburg']
-
 
         for route in routes:
             # Select random products (1 to max_products_per_order)
@@ -158,8 +205,8 @@ class OrderSystem:
 
         return simulated_orders
 
-    def get_system_stats(self):
-        """Get system statistics for demo purposes"""
+    def get_system_stats(self) -> Dict:
+        """Get system statistics for demo purposes."""
         stats = {
             'total_products': len(self.products),
             'total_routes': len(self.routes),
@@ -180,8 +227,14 @@ class OrderSystem:
 
     def calculate_order_quantities(self, product_number: int, units_ordered: int) -> Tuple[int, int]:
         """
-        Calculate trays and stacks needed for a given number of units
-        Returns: (trays_needed, stacks_needed)
+        Calculate trays and stacks needed for a given number of units.
+        
+        Args:
+            product_number: Product identifier
+            units_ordered: Number of units ordered
+            
+        Returns:
+            Tuple of (trays_needed, stacks_needed)
         """
         if product_number not in self.products:
             return 0, 0
@@ -198,15 +251,22 @@ class OrderSystem:
 
     def create_order(self, route_id: int, order_items: List[Dict], order_date: str = None, day_number: int = None) -> Optional[Order]:
         """
-        Create a new order
-        order_items: List of dicts with 'product_number' and 'units_ordered'
-        order_date: Optional date string in MM/DD/YYYY format
-        day_number: Optional day number
+        Create a new order.
+        
+        Args:
+            route_id: Route identifier
+            order_items: List of dicts with 'product_number' and 'units_ordered'
+            order_date: Optional date string in MM/DD/YYYY format
+            day_number: Optional day number
+            
+        Returns:
+            Order object if successful, None otherwise
         """
         if route_id not in self.routes:
             return None
 
         route = self.routes[route_id]
+        
         # Create order ID with day number if provided
         if day_number:
             order_id = f"ORD_D{day_number}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
@@ -225,7 +285,6 @@ class OrderSystem:
             if product_number not in self.products:
                 continue
 
-            # All products are available for every route
             if units_ordered <= 0:
                 continue
 
@@ -289,16 +348,16 @@ class OrderSystem:
         return order
 
     def get_order(self, order_id: str) -> Optional[Order]:
-        """Get an order by ID"""
+        """Get an order by ID."""
         return self.orders.get(order_id)
 
     def get_all_orders(self) -> List[Order]:
-        """Get all orders"""
+        """Get all orders."""
         return list(self.orders.values())
 
     @staticmethod
-    def get_order_summary(order: Order):
-        """Get a detailed summary of an order"""
+    def get_order_summary(order: Order) -> str:
+        """Get a detailed summary of an order."""
         summary = f"Order ID: {order.order_id}\n"
         summary += f"Route: {order.route_id}\n"
         summary += f"Location: {order.location}\n"
@@ -308,8 +367,16 @@ class OrderSystem:
         summary += f"Items: {len(order.items)}"
         return summary
 
-    def save_orders_to_file(self, filename: str = None):
-        """Save all orders to a JSON file"""
+    def save_orders_to_file(self, filename: str = None) -> str:
+        """
+        Save all orders to a JSON file.
+        
+        Args:
+            filename: Optional filename, auto-generated if not provided
+            
+        Returns:
+            Filename used
+        """
         if filename is None:
             filename = f"orders_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
 
@@ -323,8 +390,16 @@ class OrderSystem:
 
         return filename
 
-    def load_orders_from_file(self, filename: str):
-        """Load orders from a JSON file"""
+    def load_orders_from_file(self, filename: str) -> bool:
+        """
+        Load orders from a JSON file.
+        
+        Args:
+            filename: JSON file to load from
+            
+        Returns:
+            True if successful, False otherwise
+        """
         try:
             with open(filename, 'r') as f:
                 data = json.load(f)
@@ -344,8 +419,12 @@ class OrderSystem:
             return False
 
 
+# ============================================================================
+# INTERACTIVE INTERFACE
+# ============================================================================
+
 def main():
-    """Main interactive interface for the Order System"""
+    """Main interactive interface for the Order System."""
     order_system = OrderSystem()
 
     if not order_system.products or not order_system.routes:
